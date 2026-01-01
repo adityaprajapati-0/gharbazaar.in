@@ -1,0 +1,6 @@
+﻿src/app/legal-partner/earnings/page.tsx(669,20): error TS2304: Cannot find name 'X'.
+src/app/partner/earnings/page.tsx(559,18): error TS2304: Cannot find name 'X'.
+src/app/partner/leads/page.tsx(979,18): error TS2304: Cannot find name 'X'.
+src/app/partner/payments/page.tsx(831,24): error TS2304: Cannot find name 'Smartphone'.
+src/app/partner/share/page.tsx(263,15): error TS2339: Property 'info' does not exist on type '{ (message: Message, opts?: Partial<Pick<Toast, "style" | "duration" | "className" | "id" | "position" | "icon" | "ariaProps" | "iconTheme" | "toasterId" | "removeDelay">> | undefined): string; ... 8 more ...; promise<T>(promise: Promise<...> | (() => Promise<...>), msgs: { ...; }, opts?: DefaultToastOptions | undef...'.
+src/app/payment/details/page.tsx(111,17): error TS7006: Parameter 'prev' implicitly has an 'any' type.
