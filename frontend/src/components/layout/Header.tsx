@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
-import { 
-  Sun, 
-  Moon, 
-  User, 
-  Menu, 
-  LayoutDashboard, 
-  LogOut, 
+import {
+  Sun,
+  Moon,
+  User,
+  Menu,
+  LayoutDashboard,
+  LogOut,
   X,
   Heart,
   MessageSquare,
@@ -43,7 +43,7 @@ export function Header() {
 
   useEffect(() => {
     setMounted(true)
-    
+
     // Ensure theme is properly initialized
     const savedTheme = localStorage.getItem('theme')
     if (!savedTheme) {
@@ -74,7 +74,7 @@ export function Header() {
 
     window.addEventListener('scroll', handleScroll)
     document.addEventListener('mousedown', handleClickOutside)
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll)
       document.removeEventListener('mousedown', handleClickOutside)
@@ -111,19 +111,18 @@ export function Header() {
 
   return (
     <>
-      <header className={`sticky top-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200' 
+      <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
+          ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200'
           : 'bg-white/80 backdrop-blur-md border-b border-gray-100'
-      }`}>
+        }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-3 group">
               <div className="relative">
-                <img 
-                  src="/images/gharbazaar logo.jpeg" 
-                  alt="GharBazaar Logo" 
+                <img
+                  src="/images/gharbazaar logo.jpeg"
+                  alt="GharBazaar Logo"
                   className="h-10 w-10 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
@@ -136,24 +135,22 @@ export function Header() {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-1">
-              <Link 
-                href="/" 
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  isActive('/') 
-                    ? 'text-teal-600 bg-teal-50' 
+              <Link
+                href="/"
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/')
+                    ? 'text-teal-600 bg-teal-50'
                     : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Home
               </Link>
 
-              <Link 
-                href="/about" 
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  isActive('/about') 
-                    ? 'text-teal-600 bg-teal-50' 
+              <Link
+                href="/about"
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/about')
+                    ? 'text-teal-600 bg-teal-50'
                     : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 About
               </Link>
@@ -167,7 +164,7 @@ export function Header() {
                   <span>Portals</span>
                   <ChevronDown size={16} className={`transition-transform ${isPortalsOpen ? 'rotate-180' : ''}`} />
                 </button>
-                
+
                 {isPortalsOpen && (
                   <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50">
                     <Link
@@ -186,40 +183,7 @@ export function Header() {
                         <p className="text-xs text-gray-600">Browse & manage properties</p>
                       </div>
                     </Link>
-                    
-                    <Link
-                      href="/employee"
-                      onClick={() => {
-                        setIsPortalsOpen(false)
-                        showLoader('Loading employee dashboard...', 1500)
-                      }}
-                      className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition-all"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-cyan-700 rounded-lg flex items-center justify-center">
-                        <Building2 className="text-white" size={20} />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">Employee Portal</p>
-                        <p className="text-xs text-gray-600">Manage clients & deals</p>
-                      </div>
-                    </Link>
-                    
-                    <Link
-                      href="/admin"
-                      onClick={() => {
-                        setIsPortalsOpen(false)
-                        showLoader('Loading admin dashboard...', 1500)
-                      }}
-                      className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition-all"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center">
-                        <Shield className="text-white" size={20} />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">Admin Portal</p>
-                        <p className="text-xs text-gray-600">System administration</p>
-                      </div>
-                    </Link>
+
                   </div>
                 )}
               </div>
@@ -233,7 +197,7 @@ export function Header() {
                   <span>Partner Portal</span>
                   <ChevronDown size={16} className={`transition-transform ${isPartnerPortalOpen ? 'rotate-180' : ''}`} />
                 </button>
-                
+
                 {isPartnerPortalOpen && (
                   <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50">
                     <Link
@@ -252,7 +216,7 @@ export function Header() {
                         <p className="text-xs text-gray-600">Field operations & client management</p>
                       </div>
                     </Link>
-                    
+
                     <Link
                       href="/legal-partner"
                       onClick={() => {
@@ -269,7 +233,7 @@ export function Header() {
                         <p className="text-xs text-gray-600">Legal services & documentation</p>
                       </div>
                     </Link>
-                    
+
                     <Link
                       href="/partner"
                       onClick={() => {
@@ -289,36 +253,33 @@ export function Header() {
                   </div>
                 )}
               </div>
-              
-              <Link 
-                href="/founder" 
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  isActive('/founder') 
-                    ? 'text-teal-600 bg-teal-50' 
+
+              <Link
+                href="/founder"
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/founder')
+                    ? 'text-teal-600 bg-teal-50'
                     : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Founder
               </Link>
-              
-              <Link 
-                href="/pricing" 
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  isActive('/pricing') 
-                    ? 'text-teal-600 bg-teal-50' 
+
+              <Link
+                href="/pricing"
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/pricing')
+                    ? 'text-teal-600 bg-teal-50'
                     : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Pricing
               </Link>
-              
-              <Link 
-                href="/contact" 
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  isActive('/contact') 
-                    ? 'text-teal-600 bg-teal-50' 
+
+              <Link
+                href="/contact"
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/contact')
+                    ? 'text-teal-600 bg-teal-50'
                     : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Contact
               </Link>
@@ -333,12 +294,12 @@ export function Header() {
               >
                 {mounted ? (theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />) : <div className="w-5 h-5" />}
               </button>
-              
+
               {user ? (
                 <>
                   {/* Dashboard Link */}
-                  <Link 
-                    href={getDashboardLink()} 
+                  <Link
+                    href={getDashboardLink()}
                     className="hidden lg:flex items-center space-x-2 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium"
                   >
                     <LayoutDashboard size={18} />
@@ -406,21 +367,21 @@ export function Header() {
         {isMenuOpen && (
           <div className="lg:hidden border-t border-gray-200 bg-white">
             <div className="max-w-7xl mx-auto px-4 py-6 space-y-1">
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Home
               </Link>
-              <Link 
-                href="/about" 
+              <Link
+                href="/about"
                 className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
                 About
               </Link>
-              
+
               {/* Mobile Portals Section */}
               <div className="px-4 py-2">
                 <p className="text-sm font-semibold text-gray-900 mb-2">Portals</p>
@@ -441,40 +402,7 @@ export function Header() {
                       <p className="text-xs text-gray-600">Browse & manage properties</p>
                     </div>
                   </Link>
-                  
-                  <Link
-                    href="/employee"
-                    onClick={() => {
-                      setIsMenuOpen(false)
-                      showLoader('Loading employee dashboard...', 1500)
-                    }}
-                    className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-cyan-700 rounded-lg flex items-center justify-center">
-                      <Building2 className="text-white" size={16} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">Employee Portal</p>
-                      <p className="text-xs text-gray-600">Manage clients & deals</p>
-                    </div>
-                  </Link>
-                  
-                  <Link
-                    href="/admin"
-                    onClick={() => {
-                      setIsMenuOpen(false)
-                      showLoader('Loading admin dashboard...', 1500)
-                    }}
-                    className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center">
-                      <Shield className="text-white" size={16} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">Admin Portal</p>
-                      <p className="text-xs text-gray-600">System administration</p>
-                    </div>
-                  </Link>
+
                 </div>
               </div>
 
@@ -498,7 +426,7 @@ export function Header() {
                       <p className="text-xs text-gray-600">Field operations & client management</p>
                     </div>
                   </Link>
-                  
+
                   <Link
                     href="/legal-partner"
                     onClick={() => {
@@ -515,7 +443,7 @@ export function Header() {
                       <p className="text-xs text-gray-600">Legal services & documentation</p>
                     </div>
                   </Link>
-                  
+
                   <Link
                     href="/partner"
                     onClick={() => {
@@ -535,30 +463,30 @@ export function Header() {
                 </div>
               </div>
 
-              <Link 
-                href="/founder" 
+              <Link
+                href="/founder"
                 className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Founder
               </Link>
-              <Link 
-                href="/pricing" 
+              <Link
+                href="/pricing"
                 className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Pricing
               </Link>
-              <Link 
-                href="/contact" 
+              <Link
+                href="/contact"
                 className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Contact
               </Link>
-              
+
               <div className="border-t border-gray-200 my-4"></div>
-              
+
               {user ? (
                 <>
                   <div className="flex items-center space-x-3 px-4 py-3 bg-gray-50 rounded-lg">
@@ -574,16 +502,16 @@ export function Header() {
                       </div>
                     </div>
                   </div>
-                  
-                  <Link 
-                    href={getDashboardLink()} 
+
+                  <Link
+                    href={getDashboardLink()}
                     className="flex items-center space-x-3 px-4 py-3 rounded-lg text-teal-600 bg-teal-50 font-semibold"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <LayoutDashboard size={20} />
                     <span>Dashboard</span>
                   </Link>
-                  
+
                   <button
                     onClick={() => {
                       handleLogout()
