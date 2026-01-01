@@ -18,7 +18,6 @@
     "analyze": "ANALYZE=true npm run build",
     "clean": "rm -rf .next out node_modules/.cache",
     "precommit": "npm run lint && npm run type-check",
-    "prebuild": "npm run clean",
     "postbuild": "echo 'Build completed successfully!'",
     "test": "echo 'No tests specified yet'",
     "dev:turbo": "next dev --turbo",
