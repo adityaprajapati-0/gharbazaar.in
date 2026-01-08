@@ -34,6 +34,8 @@ import { AuthUtils } from '@/lib/firebase'
 import { useLoader } from '@/components/GlobalLoader'
 import ModeChangeToast from '@/components/ModeChangeToast'
 import { useSellerSubscription } from '@/contexts/SellerSubscriptionContext'
+import SupportChatbot from '@/components/AI/SupportChatbot'
+import { ChatbotErrorBoundary } from '@/components/AI/ChatbotErrorBoundary'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -64,23 +66,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return
       }
 
-      // 2. INSTANT: Get cached user data
-      const cachedUser = AuthUtils.getCachedUser()
-      if (cachedUser) {
-        setUser(cachedUser)
+      // 2. INSTANT: Get cached user data (now handles demo mode via AuthUtils)
+      const user = AuthUtils.getCachedUser()
+      if (user) {
+        setUser(user)
+
+        // If demo mode, set mode based on role
+        if (user.isDemo) {
+          const role = user.role === 'seller' ? 'seller' : 'buyer'
+          setUserMode(role)
+          localStorage.setItem('userMode', role)
+        }
       } else {
-        // Fallback: create demo user for development
-        const demoUser = {
+        // Fallback: create demo user for development (legacy check)
+        const legacyDemoUser = {
           uid: 'demo-user',
           email: 'Gharbazaarofficial@zohomail.in',
           displayName: 'Demo User',
           photoURL: null,
         }
-        setUser(demoUser)
-        AuthUtils.cacheUser(demoUser)
+        setUser(legacyDemoUser)
+        AuthUtils.cacheUser(legacyDemoUser)
       }
 
-      // 3. INSTANT: Load user mode
+      // 3. INSTANT: Load user mode (for non-demo or if already set)
       const savedMode = localStorage.getItem('userMode') as 'buyer' | 'seller'
       if (savedMode) {
         setUserMode(savedMode)
@@ -395,6 +404,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Plus size={24} />
         </button>
       )}
+
+      {/* Support Chatbot */}
+      <ChatbotErrorBoundary>
+        <SupportChatbot userRole={userMode} />
+      </ChatbotErrorBoundary>
     </div>
   )
 }

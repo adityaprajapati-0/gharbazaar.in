@@ -112,9 +112,9 @@ export default function SignupPage() {
           <div className="mb-8 lg:mb-12">
             <div className="w-16 h-16 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-2xl lg:rounded-3xl flex items-center justify-center mx-auto mb-4 lg:mb-6 shadow-2xl overflow-hidden">
               <img
-                src="/images/gharbazaar logo.jpeg"
+                src="/images/gharbazar-logo.jpeg"
                 alt="GharBazaar Logo"
-                className="w-12 h-12 lg:w-16 lg:h-16 object-contain rounded-lg"
+                className="w-full h-full object-cover rounded-2xl lg:rounded-3xl"
               />
             </div>
             <h1 className="text-3xl lg:text-5xl font-bold mb-2 lg:mb-4">GharBazaar</h1>
@@ -168,9 +168,9 @@ export default function SignupPage() {
             <div className="inline-flex items-center justify-center space-x-3 mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-xl overflow-hidden p-1">
                 <img
-                  src="/images/gharbazaar logo.jpeg"
+                  src="/images/gharbazar-logo.jpeg"
                   alt="GharBazaar Logo"
-                  className="w-10 h-10 object-contain rounded-lg"
+                  className="w-full h-full object-cover rounded-xl"
                 />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">

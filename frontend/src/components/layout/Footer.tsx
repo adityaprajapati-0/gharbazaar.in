@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Linkedin, 
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
   Youtube,
   Send,
   Building2,
@@ -30,9 +30,9 @@ export function Footer() {
           {/* Company Info */}
           <div className="lg:col-span-1">
             <div className="flex items-center space-x-3 mb-6">
-              <img 
-                src="/images/gharbazaar logo.jpeg" 
-                alt="GharBazaar Logo" 
+              <img
+                src="/images/gharbazar-logo.jpeg"
+                alt="GharBazaar Logo"
                 className="h-12 w-12 object-contain rounded-lg"
               />
               <h3 className="text-2xl font-bold bg-gradient-to-r from-teal-400 via-emerald-400 to-blue-400 bg-clip-text text-transparent">
@@ -40,10 +40,10 @@ export function Footer() {
               </h3>
             </div>
             <p className="text-gray-400 mb-6 leading-relaxed">
-              India's most trusted property platform. Transparent pricing. Zero pressure. 
+              India's most trusted property platform. Transparent pricing. Zero pressure.
               Optional assistance. Built for India.
             </p>
-            
+
             {/* Contact Info */}
             <div className="space-y-3">
               <a href="mailto:support@gharbazaar.in" className="flex items-center space-x-3 text-gray-400 hover:text-teal-400 transition-colors group">
@@ -215,7 +215,7 @@ export function Footer() {
               Made with ❤️ in India | Empowering Real Estate Dreams
             </p>
           </div>
-          
+
           <div className="flex flex-wrap justify-center items-center gap-6 text-sm">
             <Link href="/terms" className="text-gray-500 hover:text-teal-400 transition-colors">
               Terms & Conditions

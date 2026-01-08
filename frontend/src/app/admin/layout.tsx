@@ -1,13 +1,13 @@
- 'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Users, 
-  Home, 
-  UserCog, 
+import {
+  LayoutDashboard,
+  Users,
+  Home,
+  UserCog,
   DollarSign,
   CreditCard,
   BarChart3,
@@ -36,6 +36,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return
     }
 
+    // PRIORITY 1: Check for demo mode FIRST
+    const demoMode = localStorage.getItem('demo_mode');
+    const demoUserStr = localStorage.getItem('demo_user');
+
+    if (demoMode === 'true' && demoUserStr) {
+      try {
+        const demoUser = JSON.parse(demoUserStr);
+        console.log('Admin Layout: Demo mode active, user:', demoUser);
+
+        // Check if demo user is admin
+        if (demoUser.role !== 'admin') {
+          console.log('Admin Layout: Demo user is not admin, redirecting to dashboard');
+          router.push('/dashboard');
+          return;
+        }
+
+        // Create mock admin user for demo
+        const mockUser = {
+          name: demoUser.displayName,
+          email: demoUser.email,
+          uid: demoUser.uid,
+          role: 'admin',
+        };
+
+        setUser(mockUser);
+        return; // Exit early, don't check normal user
+      } catch (e) {
+        console.error('Admin Layout: Error parsing demo user:', e);
+      }
+    }
+
+    // PRIORITY 2: Check for normal user
     const userData = localStorage.getItem('user')
     if (userData) {
       const parsed = JSON.parse(userData)
@@ -79,7 +111,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -96,9 +128,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Logo */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-purple-800">
             <Link href="/" className="flex items-center space-x-3">
-              <img 
-                src="/images/logo.png" 
-                alt="GharBazaar Logo" 
+              <img
+                src="/images/logo.png"
+                alt="GharBazaar Logo"
                 className="h-10 w-auto brightness-0 invert"
               />
               <div>
@@ -106,7 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <p className="text-xs text-purple-300">Admin Portal</p>
               </div>
             </Link>
-            <button 
+            <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden text-purple-300 hover:text-white"
             >
@@ -124,8 +156,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href={item.href}
                   className={`
                     flex items-center space-x-3 px-4 py-3 rounded-xl transition-all
-                    ${isActive 
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-600/30' 
+                    ${isActive
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-600/30'
                       : 'text-purple-200 hover:bg-purple-800/50'
                     }
                   `}
@@ -179,7 +211,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 <Menu size={24} />
               </button>
-              
+
               <div className="hidden sm:flex items-center flex-1 max-w-md">
                 <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />

@@ -92,9 +92,9 @@ export default function LoginPage() {
           <div className="mb-8 lg:mb-12">
             <div className="w-16 h-16 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-2xl lg:rounded-3xl flex items-center justify-center mx-auto mb-4 lg:mb-6 shadow-2xl overflow-hidden">
               <img
-                src="/images/gharbazaar logo.jpeg"
+                src="/images/gharbazar-logo.jpeg"
                 alt="GharBazaar Logo"
-                className="w-12 h-12 lg:w-16 lg:h-16 object-contain rounded-lg"
+                className="w-full h-full object-cover rounded-2xl lg:rounded-3xl"
               />
             </div>
             <h1 className="text-3xl lg:text-5xl font-bold mb-2 lg:mb-4">GharBazaar</h1>
@@ -148,9 +148,9 @@ export default function LoginPage() {
             <div className="inline-flex items-center justify-center space-x-3 mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-xl overflow-hidden p-1">
                 <img
-                  src="/images/gharbazaar logo.jpeg"
+                  src="/images/gharbazar-logo.jpeg"
                   alt="GharBazaar Logo"
-                  className="w-10 h-10 object-contain rounded-lg"
+                  className="w-full h-full object-cover rounded-xl"
                 />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
@@ -287,6 +287,85 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
+
+            {/* Demo Login Buttons */}
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-center text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                🎯 Quick Demo Access (Instant Access)
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    localStorage.setItem('demo_mode', 'true');
+                    localStorage.setItem('demo_user', JSON.stringify({ uid: 'demo-buyer', email: 'buyer@demo.com', displayName: 'Demo Buyer', role: 'buyer' }));
+                    router.push('/dashboard');
+                  }}
+                  className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all border border-blue-200 dark:border-blue-800"
+                >
+                  👤 Buyer/Seller
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem('demo_mode', 'true');
+                    localStorage.setItem('demo_user', JSON.stringify({ uid: 'demo-admin', email: 'admin@demo.com', displayName: 'Demo Admin', role: 'admin' }));
+                    router.push('/admin');
+                  }}
+                  className="px-3 py-2 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-medium hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all border border-purple-200 dark:border-purple-800"
+                >
+                  👑 Admin
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem('demo_mode', 'true');
+                    localStorage.setItem('demo_user', JSON.stringify({ uid: 'demo-employee', email: 'employee@demo.com', displayName: 'Demo Employee', role: 'employee' }));
+                    router.push('/employee');
+                  }}
+                  className="px-3 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg text-xs font-medium hover:bg-green-100 dark:hover:bg-green-900/30 transition-all border border-green-200 dark:border-green-800"
+                >
+                  💼 Employee
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem('demo_mode', 'true');
+                    localStorage.setItem('demo_user', JSON.stringify({ uid: 'demo-legal', email: 'legal@demo.com', displayName: 'Demo Legal Partner', role: 'legal-partner' }));
+                    router.push('/legal-partner');
+                  }}
+                  className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all border border-amber-200 dark:border-amber-800"
+                >
+                  ⚖️ Legal Partner
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem('demo_mode', 'true');
+                    localStorage.setItem('demo_user', JSON.stringify({ uid: 'demo-ground', email: 'ground@demo.com', displayName: 'Demo Ground Partner', role: 'ground-partner' }));
+                    router.push('/ground-partner');
+                  }}
+                  className="px-3 py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-medium hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all border border-orange-200 dark:border-orange-800"
+                >
+                  🏗️ Ground Partner
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem('demo_mode', 'true');
+                    localStorage.setItem('demo_user', JSON.stringify({ uid: 'demo-partner', email: 'partner@demo.com', displayName: 'Demo Promo Partner', role: 'promo-partner' }));
+                    router.push('/partner');
+                  }}
+                  className="px-3 py-2 bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300 rounded-lg text-xs font-medium hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-all border border-pink-200 dark:border-pink-800"
+                >
+                  📢 Promo Partner
+                </button>
+              </div>
+
+              <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-3">
+                Instant demo access - no login required!
+              </p>
+            </div>
 
             {/* Sign Up Link */}
             <div className="text-center pt-4 lg:pt-6">

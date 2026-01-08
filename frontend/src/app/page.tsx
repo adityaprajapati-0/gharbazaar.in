@@ -153,11 +153,11 @@ export default function HomePage() {
                   <div className="aspect-square bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/30 dark:to-emerald-900/30 rounded-2xl flex items-center justify-center">
                     <div className="w-full h-full flex items-center justify-center">
                       <Image
-                        src="/images/gharbazaar logo.jpeg"
+                        src="/images/gharbazar-logo.jpeg"
                         alt="GharBazaar Logo"
-                        width={300}
-                        height={300}
-                        className="object-contain rounded-xl"
+                        width={400}
+                        height={400}
+                        className="object-cover rounded-2xl w-full h-full"
                       />
                     </div>
                   </div>

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { 
-  Shield, 
+import { backendApi } from '@/lib/backendApi'
+import {
+  Shield,
   ArrowLeft,
   Home,
   CheckCircle,
@@ -77,7 +78,7 @@ export default function PaymentConfirmPage() {
     // Load customer details and payment method from localStorage
     const details = localStorage.getItem('paymentCustomerDetails')
     const method = localStorage.getItem('selectedPaymentMethod')
-    
+
     if (details) {
       setCustomerDetails(JSON.parse(details))
     } else {
@@ -97,61 +98,40 @@ export default function PaymentConfirmPage() {
 
   const handlePayNow = async () => {
     setIsProcessing(true)
-    
-    try {
-      // Create order
-      const orderResponse = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: (serviceDetails.price + serviceDetails.tax) * 100, // Convert to paise
-          currency: 'INR',
-          receipt: `receipt_${Date.now()}`,
-          notes: {
-            service: serviceDetails.name,
-            customer: customerDetails.fullName,
-            email: customerDetails.email,
-            phone: customerDetails.mobile,
-            method: paymentMethod,
-            serviceType: customerDetails.serviceType,
-            propertyLocation: customerDetails.propertyLocation
-          }
-        })
-      })
 
-      if (!orderResponse.ok) {
+    try {
+      // Create order using backendApi
+      const orderData = await backendApi.payments.createOrder(
+        (serviceDetails.price + serviceDetails.tax) * 100, // amount in paise
+        'service_payment',
+        {
+          service: serviceDetails.name,
+          customer: customerDetails.fullName,
+          email: customerDetails.email,
+          phone: customerDetails.mobile,
+          method: paymentMethod,
+          serviceType: customerDetails.serviceType,
+          propertyLocation: customerDetails.propertyLocation
+        }
+      )
+
+      if (!orderData.success) {
         throw new Error('Failed to create order')
       }
 
-      const orderData = await orderResponse.json()
-      
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 3000))
-      
+
       // Generate payment ID and signature
       const paymentId = 'pay_' + Date.now() + Math.random().toString(36).substring(2, 8)
       const signature = 'sig_' + btoa(orderData.order.id + '|' + paymentId).substring(0, 20)
 
-      // Verify payment
-      const verifyResponse = await fetch('/api/verify-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          razorpay_order_id: orderData.order.id,
-          razorpay_payment_id: paymentId,
-          razorpay_signature: signature
-        })
+      // Verify payment using backendApi
+      const verifyData = await backendApi.payments.verify({
+        razorpay_order_id: orderData.order.id,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature
       })
-
-      if (!verifyResponse.ok) {
-        throw new Error('Payment verification failed')
-      }
-
-      const verifyData = await verifyResponse.json()
 
       if (verifyData.success) {
         // Store payment details for success page
@@ -164,7 +144,7 @@ export default function PaymentConfirmPage() {
           customer: customerDetails,
           timestamp: new Date().toISOString()
         }))
-        
+
         router.push('/payment/success')
       } else {
         throw new Error('Payment verification failed')
@@ -403,10 +383,10 @@ export default function PaymentConfirmPage() {
                         Important Service Disclaimer
                       </h4>
                       <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
-                        <strong>GharBazaar provides professional real estate assistance services.</strong> 
-                        Fees are charged on a fixed professional basis for consultation, due diligence, 
-                        documentation support, and advisory services. This payment is for professional 
-                        services only and does not guarantee any specific outcome regarding property 
+                        <strong>GharBazaar provides professional real estate assistance services.</strong>
+                        Fees are charged on a fixed professional basis for consultation, due diligence,
+                        documentation support, and advisory services. This payment is for professional
+                        services only and does not guarantee any specific outcome regarding property
                         transactions. All services are subject to our terms and conditions.
                       </p>
                     </div>
@@ -420,7 +400,7 @@ export default function PaymentConfirmPage() {
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 sticky top-6">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Payment Summary</h3>
-              
+
               {/* Amount Breakdown */}
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between items-center">
@@ -461,11 +441,10 @@ export default function PaymentConfirmPage() {
               <button
                 onClick={handlePayNow}
                 disabled={isProcessing}
-                className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 transform flex items-center justify-center space-x-3 ${
-                  isProcessing
+                className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 transform flex items-center justify-center space-x-3 ${isProcessing
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white hover:scale-105 shadow-xl'
-                }`}
+                  }`}
               >
                 {isProcessing ? (
                   <>

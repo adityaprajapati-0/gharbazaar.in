@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { 
-  LayoutDashboard, 
-  Users, 
-  MapPin, 
-  FileCheck, 
-  MessageSquare, 
+import {
+  LayoutDashboard,
+  Users,
+  MapPin,
+  FileCheck,
+  MessageSquare,
   DollarSign,
   TrendingUp,
   BookOpen,
@@ -29,6 +29,7 @@ import {
   Award,
   Settings
 } from 'lucide-react'
+import { AuthUtils } from '@/lib/firebase'
 
 export default function GroundPartnerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -53,6 +54,19 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
       return
     }
 
+    // PRIORITY 1: Check demo mode first via AuthUtils
+    const demoUser = AuthUtils.getCachedUser();
+    if (demoUser && demoUser.isDemo) {
+      // Check if user is ground partner
+      if (demoUser.role !== 'ground-partner' && demoUser.role !== 'admin') {
+        router.push('/dashboard')
+        return
+      }
+      setUser(demoUser)
+      return
+    }
+
+    // PRIORITY 2: Normal auth check
     const userData = localStorage.getItem('user')
     if (userData) {
       const parsed = JSON.parse(userData)
@@ -75,7 +89,7 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
 
   const getThemeIcon = () => {
     if (!mounted) return <Monitor size={20} />
-    
+
     switch (theme) {
       case 'light':
         return <Sun size={20} />
@@ -88,7 +102,7 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
 
   const cycleTheme = () => {
     if (!mounted) return
-    
+
     switch (theme) {
       case 'light':
         setTheme('dark')
@@ -125,7 +139,7 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -143,9 +157,9 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
           <div className="flex items-center justify-between px-6 py-6 border-b border-gray-200 dark:border-gray-800">
             <Link href="/" className="flex items-center space-x-4">
               <div className="relative">
-                <img 
-                  src="/images/gharbazaar logo.jpeg" 
-                  alt="GharBazaar Logo" 
+                <img
+                  src="/images/gharbazaar logo.jpeg"
+                  alt="GharBazaar Logo"
                   className="h-12 w-12 rounded-2xl shadow-lg object-cover"
                 />
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white dark:border-gray-950"></div>
@@ -155,7 +169,7 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
                 <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Ground Partner</p>
               </div>
             </Link>
-            <button 
+            <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"
             >
@@ -173,8 +187,8 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
                   href={item.href}
                   className={`
                     group flex items-center space-x-3 px-4 py-3 rounded-2xl transition-all duration-300
-                    ${isActive 
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25' 
+                    ${isActive
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400'
                     }
                   `}
@@ -205,7 +219,7 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
                 </span>
               </button>
             </div>
-            
+
             {/* User Profile */}
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
@@ -247,7 +261,7 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
               >
                 <Menu size={24} />
               </button>
-              
+
               <div className="hidden sm:flex items-center flex-1 max-w-md">
                 <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -261,7 +275,7 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
             </div>
 
             <div className="flex items-center space-x-3">
-              <button 
+              <button
                 onClick={cycleTheme}
                 className="relative p-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all duration-300 group"
                 title={`Current theme: ${theme || 'system'}`}
@@ -271,7 +285,7 @@ export default function GroundPartnerLayout({ children }: { children: React.Reac
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                 </div>
               </button>
-              
+
               <button className="relative p-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all duration-300 group">
                 <div className="relative">
                   <Bell size={20} />

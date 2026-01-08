@@ -23,10 +23,36 @@ export default function DashboardPage() {
     if (!mounted) return
 
     try {
-      // Check for user in localStorage
+      // PRIORITY 1: Check for demo mode FIRST
+      const demoMode = localStorage.getItem('demo_mode');
+      const demoUserStr = localStorage.getItem('demo_user');
+
+      if (demoMode === 'true' && demoUserStr) {
+        try {
+          const demoUser = JSON.parse(demoUserStr);
+          console.log('Dashboard: Demo mode active, user:', demoUser);
+
+          // Create user object from demo data
+          const mockUser = {
+            name: demoUser.displayName,
+            email: demoUser.email,
+            uid: demoUser.uid,
+            role: demoUser.role,
+          };
+
+          setUser(mockUser);
+          setUserMode(demoUser.role === 'seller' ? 'seller' : 'buyer');
+          setLoading(false);
+          return; // Exit early, don't check normal user
+        } catch (e) {
+          console.error('Dashboard: Error parsing demo user:', e);
+        }
+      }
+
+      // PRIORITY 2: Check for normal user in localStorage
       const storedUser = localStorage.getItem('user')
       console.log('Dashboard: Checking user...', storedUser ? 'Found' : 'Not found')
-      
+
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser)
@@ -44,14 +70,14 @@ export default function DashboardPage() {
           router.push('/login')
         }, 100)
       }
-      
+
       // Load user mode
       const savedMode = localStorage.getItem('userMode') as 'buyer' | 'seller'
       console.log('Dashboard: User mode:', savedMode || 'buyer (default)')
       if (savedMode) {
         setUserMode(savedMode)
       }
-      
+
       setLoading(false)
     } catch (error) {
       console.error('Dashboard: Initialization error:', error)
@@ -66,7 +92,7 @@ export default function DashboardPage() {
       console.log('Dashboard: Mode changed to', event.detail.mode)
       setUserMode(event.detail.mode)
     }
-    
+
     window.addEventListener('userModeChange', handleModeChange)
     return () => window.removeEventListener('userModeChange', handleModeChange)
   }, [])

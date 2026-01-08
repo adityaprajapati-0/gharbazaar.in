@@ -3,15 +3,15 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { 
-  Home, 
-  Users, 
-  Share2, 
-  TrendingUp, 
-  Wallet, 
-  FileText, 
-  BookOpen, 
-  HelpCircle, 
+import {
+  Home,
+  Users,
+  Share2,
+  TrendingUp,
+  Wallet,
+  FileText,
+  BookOpen,
+  HelpCircle,
   LogOut,
   Menu,
   X,
@@ -22,6 +22,7 @@ import {
   Eye,
   Phone
 } from 'lucide-react'
+import { AuthUtils } from '@/lib/firebase'
 
 export default function PartnerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -39,11 +40,24 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
       return
     }
 
+    // PRIORITY 1: Check demo mode first via AuthUtils
+    const demoUser = AuthUtils.getCachedUser();
+    if (demoUser && demoUser.isDemo) {
+      // Check if user is partner
+      if (demoUser.role !== 'promo-partner' && demoUser.role !== 'admin') {
+        router.push('/login')
+        return
+      }
+      setUser(demoUser)
+      return
+    }
+
+    // PRIORITY 2: Normal auth check
     const userData = localStorage.getItem('user')
     if (userData) {
       const parsed = JSON.parse(userData)
       // Check if user is partner
-      if (parsed.role !== 'partner') {
+      if (parsed.role !== 'partner' && parsed.role !== 'promo-partner' && parsed.role !== 'admin') {
         router.push('/partner/login')
         return
       }
@@ -109,7 +123,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -127,9 +141,9 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
           <div className="flex items-center justify-between px-6 py-6 border-b border-gray-200 dark:border-gray-800">
             <Link href="/" className="flex items-center space-x-4">
               <div className="relative">
-                <img 
-                  src="/images/gharbazaar logo.jpeg" 
-                  alt="GharBazaar Logo" 
+                <img
+                  src="/images/gharbazaar logo.jpeg"
+                  alt="GharBazaar Logo"
                   className="h-12 w-12 rounded-2xl shadow-lg object-cover"
                 />
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-blue-600 to-green-600 rounded-full border-2 border-white dark:border-gray-950 flex items-center justify-center">
@@ -141,7 +155,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
                 <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Partner Portal</p>
               </div>
             </Link>
-            <button 
+            <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"
             >
@@ -171,8 +185,8 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
                   href={item.href}
                   className={`
                     group flex items-center space-x-3 px-4 py-3 rounded-2xl transition-all duration-300
-                    ${isActive 
-                      ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-lg shadow-blue-600/25' 
+                    ${isActive
+                      ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-lg shadow-blue-600/25'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400'
                     }
                   `}
@@ -259,7 +273,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
               >
                 <Menu size={24} />
               </button>
-              
+
               <div className="hidden sm:block">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                   Hello, {user?.name?.split(' ')[0]}! 👋
@@ -278,7 +292,7 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
                 <Bell size={20} />
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-950"></span>
               </Link>
-              
+
               <Link
                 href="/partner/profile"
                 className="relative p-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all duration-300 group"

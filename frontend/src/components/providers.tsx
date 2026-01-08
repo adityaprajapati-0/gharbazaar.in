@@ -9,6 +9,8 @@ import { LoaderProvider } from '@/components/GlobalLoader'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { PaymentProvider } from '@/contexts/PaymentContext'
 import { SellerSubscriptionProvider } from '@/contexts/SellerSubscriptionContext'
+import { SocketProvider } from '@/contexts/SocketContext'
+import { ToastProvider } from '@/components/Toast/ToastProvider'
 import LoadingScreen from './LoadingScreen'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -29,7 +31,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <FavoritesProvider>
               <PaymentProvider>
                 <SellerSubscriptionProvider>
-                  {children}
+                  <SocketProvider>
+                    <ToastProvider>
+                      {children}
+                    </ToastProvider>
+                  </SocketProvider>
                 </SellerSubscriptionProvider>
               </PaymentProvider>
             </FavoritesProvider>

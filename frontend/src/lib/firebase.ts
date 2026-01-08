@@ -3,19 +3,13 @@ import { getAuth, GoogleAuthProvider, RecaptchaVerifier } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 import { getAnalytics, isSupported } from 'firebase/analytics'
+import { CONFIG } from '@/config'
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-}
+const firebaseConfig = CONFIG.FIREBASE
+
 
 // Check if Firebase config is properly set
-const isFirebaseConfigured = Object.values(firebaseConfig).every(value => 
+const isFirebaseConfigured = Object.values(firebaseConfig).every(value =>
   value && value !== 'undefined' && !value.includes('placeholder')
 )
 
@@ -34,7 +28,7 @@ if (isFirebaseConfigured) {
     db = getFirestore(app)
     storage = getStorage(app)
     googleProvider = new GoogleAuthProvider()
-    
+
     // Configure Google Provider
     googleProvider.setCustomParameters({
       prompt: 'select_account',
@@ -65,6 +59,10 @@ export const AuthUtils = {
 
   // Check if user is logged in (instant)
   isLoggedIn: () => {
+    // Check demo mode first
+    if (typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true') {
+      return true;
+    }
     const user = AuthUtils.getCurrentUser()
     const cachedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
     return !!(user || cachedUser)
@@ -74,6 +72,21 @@ export const AuthUtils = {
   getCachedUser: () => {
     if (typeof window === 'undefined') return null
     try {
+      // Check demo mode first
+      if (localStorage.getItem('demo_mode') === 'true') {
+        const demoUser = localStorage.getItem('demo_user');
+        if (demoUser) {
+          const parsed = JSON.parse(demoUser);
+          // Map demo user to internal user format if needed
+          return {
+            uid: parsed.uid,
+            email: parsed.email,
+            displayName: parsed.displayName,
+            role: parsed.role,
+            isDemo: true
+          };
+        }
+      }
       const cached = localStorage.getItem('user')
       return cached ? JSON.parse(cached) : null
     } catch {
@@ -96,6 +109,8 @@ export const AuthUtils = {
     localStorage.removeItem('userRole')
     localStorage.removeItem('userMode')
     localStorage.removeItem('lastLogin')
+    localStorage.removeItem('demo_mode')
+    localStorage.removeItem('demo_user')
   },
 
   // Get user role (instant)
@@ -111,7 +126,7 @@ export const setupRecaptcha = (containerId: string) => {
     console.warn('Firebase Auth not initialized or not in browser environment')
     return null
   }
-  
+
   try {
     // Clear any existing reCAPTCHA widget
     const container = document.getElementById(containerId)

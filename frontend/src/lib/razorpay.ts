@@ -107,7 +107,7 @@ export const initiateRazorpayPayment = async (
       currency: 'INR',
       name: 'GharBazaar',
       description: paymentData.serviceName,
-      image: '/images/gharbazaar logo.jpeg',
+      image: '/images/gharbazar-logo.jpeg',
       prefill: {
         name: paymentData.userDetails.name,
         email: paymentData.userDetails.email,
@@ -167,7 +167,7 @@ export const initiateRazorpayPayment = async (
 
     // Create and open Razorpay instance
     const razorpay = new window.Razorpay(options);
-    
+
     // Handle payment failure
     razorpay.on('payment.failed', function (response: any) {
       console.error('Payment failed:', response.error);
@@ -206,10 +206,10 @@ export const verifyPayment = async (
   try {
     // In production, this should call your backend API
     // to verify the payment with Razorpay
-    
+
     // Mock verification - always return success for demo
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     return {
       success: true,
       message: 'Payment verified successfully'
@@ -276,10 +276,10 @@ export const validatePaymentData = (data: PaymentData): string[] => {
 // Payment analytics
 export const trackRazorpayEvent = (event: string, data: any) => {
   console.log(`Razorpay Event: ${event}`, data);
-  
+
   // In production, integrate with analytics services
   // Example: Google Analytics, Mixpanel, etc.
-  
+
   if (typeof window !== 'undefined' && (window as any).gtag) {
     (window as any).gtag('event', event, {
       event_category: 'Payment',
@@ -326,7 +326,7 @@ export const RAZORPAY_CONFIG = {
   currency: 'INR',
   theme_color: '#14b8a6',
   company_name: 'GharBazaar',
-  company_logo: '/images/gharbazaar logo.jpeg',
+  company_logo: '/images/gharbazar-logo.jpeg',
   timeout: 300, // 5 minutes
   retry: {
     enabled: true,

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { 
-  CreditCard, 
-  Smartphone, 
-  Building2, 
+import {
+  CreditCard,
+  Smartphone,
+  Building2,
   Wallet,
   Lock,
   Eye,
@@ -28,6 +28,7 @@ import {
 import { initiateRazorpayPayment, PaymentData } from '@/lib/razorpay'
 import QRCodeGenerator from '@/components/ui/QRCodeGenerator'
 import { processPaymentAPI, sendPaymentConfirmationAPI } from '@/lib/payment-api'
+import { backendApi } from '@/lib/backendApi'
 
 interface PaymentFormProps {
   amount: number
@@ -42,12 +43,12 @@ interface PaymentFormProps {
   loading: boolean
 }
 
-export default function PaymentForm({ 
-  amount, 
-  serviceName, 
+export default function PaymentForm({
+  amount,
+  serviceName,
   userDetails,
-  onPaymentSuccess, 
-  onPaymentError, 
+  onPaymentSuccess,
+  onPaymentError,
   loading
 }: PaymentFormProps) {
   const [selectedMethod, setSelectedMethod] = useState<'upi' | 'card' | 'netbanking' | 'wallet' | 'qr'>('qr')
@@ -56,7 +57,7 @@ export default function PaymentForm({
   const [qrCodeGenerated, setQrCodeGenerated] = useState(false)
   const [paymentTimer, setPaymentTimer] = useState(300) // 5 minutes
   const [copied, setCopied] = useState(false)
-  
+
   // Card form state
   const [cardData, setCardData] = useState({
     number: '',
@@ -64,14 +65,14 @@ export default function PaymentForm({
     cvv: '',
     name: ''
   })
-  
+
   // UPI form state
   const [upiId, setUpiId] = useState('')
   const [upiVerified, setUpiVerified] = useState(false)
-  
+
   // Net banking state
   const [selectedBank, setSelectedBank] = useState('')
-  
+
   // Wallet state
   const [selectedWallet, setSelectedWallet] = useState('')
 
@@ -213,11 +214,11 @@ export default function PaymentForm({
     const currentMonth = new Date().getMonth() + 1
     const expMonth = parseInt(month)
     const expYear = parseInt(year)
-    
+
     if (expMonth < 1 || expMonth > 12) return false
     if (expYear < currentYear) return false
     if (expYear === currentYear && expMonth < currentMonth) return false
-    
+
     return true
   }
 
@@ -228,7 +229,7 @@ export default function PaymentForm({
 
   const verifyUPI = async (upiId: string) => {
     if (!validateUPI(upiId)) return false
-    
+
     // Simulate UPI verification
     await new Promise(resolve => setTimeout(resolve, 1500))
     setUpiVerified(true)
@@ -241,10 +242,10 @@ export default function PaymentForm({
     const merchantName = 'GharBazaar'
     const transactionNote = `Payment for ${serviceName}`
     const transactionRef = 'GHB' + Date.now()
-    
+
     // Standard UPI payment URL format
     const qrString = `upi://pay?pa=${merchantVPA}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(transactionNote)}&tr=${transactionRef}`
-    
+
     setQrData(qrString)
     setQrCodeGenerated(true)
     setPaymentTimer(300) // Reset timer
@@ -338,37 +339,28 @@ export default function PaymentForm({
 
       // Create payment order first
       console.log('📝 Creating payment order...')
-      const orderResponse = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: amount * 100, // Convert to paise
-          currency: 'INR',
-          receipt: `receipt_${Date.now()}`,
-          notes: {
-            service: serviceName,
-            customer: userDetails.name,
-            email: userDetails.email,
-            phone: userDetails.phone,
-            method: selectedMethod
-          }
-        })
-      })
+      const orderData = await backendApi.payments.createOrder(
+        amount * 100, // Convert to paise
+        selectedMethod,
+        {
+          service: serviceName,
+          customer: userDetails.name,
+          email: userDetails.email,
+          phone: userDetails.phone,
+          method: selectedMethod
+        }
+      )
 
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json()
-        throw new Error(errorData.error || 'Failed to create payment order')
+      if (!orderData.success) {
+        throw new Error(orderData.error || 'Failed to create payment order')
       }
 
-      const orderData = await orderResponse.json()
       console.log('✅ Order created successfully:', orderData.order.id)
 
       // Process payment based on selected method
       console.log(`💳 Processing ${selectedMethod.toUpperCase()} payment...`)
       let paymentResult
-      
+
       switch (selectedMethod) {
         case 'upi':
           paymentResult = await processUPIPayment(orderData.order, upiId)
@@ -393,24 +385,16 @@ export default function PaymentForm({
 
       // Verify payment on backend
       console.log('🔍 Verifying payment...')
-      const verificationResponse = await fetch('/api/verify-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          razorpay_order_id: paymentResult.orderId,
-          razorpay_payment_id: paymentResult.paymentId,
-          razorpay_signature: paymentResult.signature
-        })
+      const verificationData = await backendApi.payments.verify({
+        razorpay_order_id: paymentResult.orderId,
+        razorpay_payment_id: paymentResult.paymentId,
+        razorpay_signature: paymentResult.signature
       })
 
-      if (!verificationResponse.ok) {
-        const errorData = await verificationResponse.json()
-        throw new Error(errorData.error || 'Payment verification failed')
+      if (!verificationData.success) {
+        throw new Error(verificationData.error || 'Payment verification failed')
       }
 
-      const verificationData = await verificationResponse.json()
       console.log('✅ Payment verified:', verificationData)
 
       if (verificationData.success) {
@@ -429,7 +413,7 @@ export default function PaymentForm({
       } else {
         throw new Error('Payment verification failed')
       }
-      
+
     } catch (error) {
       console.error('❌ Payment processing error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed'
@@ -442,16 +426,16 @@ export default function PaymentForm({
   // Custom payment processing functions for each method
   const processUPIPayment = async (orderData: any, upiId: string) => {
     console.log('🔄 Processing UPI payment for:', upiId)
-    
+
     // Simulate UPI payment processing with realistic delay
     await new Promise(resolve => setTimeout(resolve, 2000))
-    
+
     // In real implementation, this would integrate with UPI APIs
     const paymentId = 'pay_upi_' + Date.now() + Math.random().toString(36).substring(2, 8)
     const signature = generateSignature(orderData.id, paymentId)
-    
+
     console.log('✅ UPI payment processed successfully')
-    
+
     return {
       paymentId,
       orderId: orderData.id,
@@ -463,16 +447,16 @@ export default function PaymentForm({
 
   const processCardPayment = async (orderData: any, cardData: any) => {
     console.log('💳 Processing card payment for:', cardData.number.slice(-4))
-    
+
     // Simulate card payment processing with realistic delay
     await new Promise(resolve => setTimeout(resolve, 3000))
-    
+
     // In real implementation, this would integrate with card processing APIs
     const paymentId = 'pay_card_' + Date.now() + Math.random().toString(36).substring(2, 8)
     const signature = generateSignature(orderData.id, paymentId)
-    
+
     console.log('✅ Card payment processed successfully')
-    
+
     return {
       paymentId,
       orderId: orderData.id,
@@ -484,15 +468,15 @@ export default function PaymentForm({
 
   const processNetBankingPayment = async (orderData: any, bankName: string) => {
     console.log('🏦 Processing net banking payment for:', bankName)
-    
+
     // Simulate net banking payment processing with realistic delay
     await new Promise(resolve => setTimeout(resolve, 4000))
-    
+
     const paymentId = 'pay_nb_' + Date.now() + Math.random().toString(36).substring(2, 8)
     const signature = generateSignature(orderData.id, paymentId)
-    
+
     console.log('✅ Net banking payment processed successfully')
-    
+
     return {
       paymentId,
       orderId: orderData.id,
@@ -504,15 +488,15 @@ export default function PaymentForm({
 
   const processWalletPayment = async (orderData: any, walletName: string) => {
     console.log('📱 Processing wallet payment for:', walletName)
-    
+
     // Simulate wallet payment processing with realistic delay
     await new Promise(resolve => setTimeout(resolve, 2000))
-    
+
     const paymentId = 'pay_wallet_' + Date.now() + Math.random().toString(36).substring(2, 8)
     const signature = generateSignature(orderData.id, paymentId)
-    
+
     console.log('✅ Wallet payment processed successfully')
-    
+
     return {
       paymentId,
       orderId: orderData.id,
@@ -524,15 +508,15 @@ export default function PaymentForm({
 
   const processQRPayment = async (orderData: any) => {
     console.log('📱 Processing QR payment...')
-    
+
     // Simulate QR payment processing with realistic delay
     await new Promise(resolve => setTimeout(resolve, 2500))
-    
+
     const paymentId = 'pay_qr_' + Date.now() + Math.random().toString(36).substring(2, 8)
     const signature = generateSignature(orderData.id, paymentId)
-    
+
     console.log('✅ QR payment processed successfully')
-    
+
     return {
       paymentId,
       orderId: orderData.id,
@@ -551,13 +535,13 @@ export default function PaymentForm({
     if (!userDetails.name.trim() || !userDetails.email.trim() || !userDetails.phone.trim()) {
       return false
     }
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(userDetails.email)) {
       return false
     }
-    
+
     // Validate phone format (more flexible - any 10 digit number)
     const cleanPhone = userDetails.phone.replace(/\D/g, '')
     if (cleanPhone.length !== 10) {
@@ -567,10 +551,10 @@ export default function PaymentForm({
     // Check payment method specific validations (more lenient)
     switch (selectedMethod) {
       case 'card':
-        return cardData.number.replace(/\s/g, '').length >= 13 && 
-               cardData.expiry.length >= 5 && 
-               cardData.cvv.length >= 3 && 
-               cardData.name.trim().length >= 2
+        return cardData.number.replace(/\s/g, '').length >= 13 &&
+          cardData.expiry.length >= 5 &&
+          cardData.cvv.length >= 3 &&
+          cardData.name.trim().length >= 2
       case 'upi':
         return upiId.includes('@') && upiId.trim().length > 5
       case 'netbanking':
@@ -587,7 +571,7 @@ export default function PaymentForm({
   return (
     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-8 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-teal-400/10 to-emerald-400/10 rounded-full -translate-y-16 translate-x-16"></div>
-      
+
       {/* Payment Method Selection Header */}
       <div className="flex items-center justify-between mb-8 relative z-10">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -606,21 +590,19 @@ export default function PaymentForm({
             <button
               key={method.id}
               onClick={() => setSelectedMethod(method.id)}
-              className={`p-6 border-2 rounded-2xl transition-all duration-300 relative overflow-hidden group ${
-                selectedMethod === method.id
-                  ? 'border-teal-500 bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-900/30 dark:to-emerald-900/30 shadow-lg scale-105'
-                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-md'
-              }`}
+              className={`p-6 border-2 rounded-2xl transition-all duration-300 relative overflow-hidden group ${selectedMethod === method.id
+                ? 'border-teal-500 bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-900/30 dark:to-emerald-900/30 shadow-lg scale-105'
+                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-md'
+                }`}
             >
               <div className="flex flex-col items-center text-center space-y-3">
-                <div className={`p-3 rounded-xl transition-all duration-300 ${
-                  selectedMethod === method.id
-                    ? 'bg-gradient-to-br from-teal-500 to-emerald-500 text-white shadow-lg'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-600'
-                }`}>
+                <div className={`p-3 rounded-xl transition-all duration-300 ${selectedMethod === method.id
+                  ? 'bg-gradient-to-br from-teal-500 to-emerald-500 text-white shadow-lg'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-600'
+                  }`}>
                   {method.icon}
                 </div>
-                
+
                 <div>
                   <div className="flex items-center justify-center space-x-2 mb-1">
                     <span className="font-semibold text-gray-900 dark:text-white">
@@ -635,13 +617,13 @@ export default function PaymentForm({
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                     {method.description}
                   </p>
-                  
+
                   {method.discount && (
                     <div className="text-xs text-green-600 dark:text-green-400 font-medium bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full mb-2">
                       {method.discount}
                     </div>
                   )}
-                  
+
                   <div className="flex flex-wrap justify-center gap-1">
                     {method.features.map((feature, index) => (
                       <span key={index} className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
@@ -669,7 +651,7 @@ export default function PaymentForm({
                 <img src="https://img.icons8.com/color/24/rupay.png" alt="RuPay" className="w-6 h-6" />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                 Card Number
@@ -698,7 +680,7 @@ export default function PaymentForm({
                   className="w-full px-4 py-4 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-lg"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                   CVV
@@ -750,7 +732,7 @@ export default function PaymentForm({
                 </div>
               )}
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                 Enter UPI ID
@@ -817,7 +799,7 @@ export default function PaymentForm({
                 </div>
               )}
             </div>
-            
+
             {!qrCodeGenerated ? (
               <div className="text-center py-8">
                 <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -838,13 +820,13 @@ export default function PaymentForm({
               <div className="text-center">
                 {/* Real QR Code Display */}
                 <div className="bg-white rounded-2xl shadow-lg mx-auto mb-4 p-6 inline-block">
-                  <QRCodeGenerator 
-                    value={qrData} 
+                  <QRCodeGenerator
+                    value={qrData}
                     size={200}
                     className="mx-auto"
                   />
                 </div>
-                
+
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mb-4">
                   <h5 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
                     How to Pay with QR Code:
@@ -856,7 +838,7 @@ export default function PaymentForm({
                     <li>4. Verify amount ₹{amount.toLocaleString()} and complete payment</li>
                   </ol>
                 </div>
-                
+
                 <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 mb-4 border border-amber-200 dark:border-amber-700">
                   <p className="text-sm text-amber-700 dark:text-amber-300 font-medium mb-2">
                     ⚠️ Important Note:
@@ -865,7 +847,7 @@ export default function PaymentForm({
                     The QR code above is a visual placeholder. For actual payment, please use the "Copy UPI Link" button below and paste it in your UPI app, or use the direct UPI payment option.
                   </p>
                 </div>
-                
+
                 <div className="flex justify-center space-x-3 mb-6">
                   <button
                     onClick={() => copyToClipboard(qrData)}
@@ -885,7 +867,7 @@ export default function PaymentForm({
                     <span>Regenerate</span>
                   </button>
                 </div>
-                
+
                 {/* Alternative: Direct UPI Link */}
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -918,12 +900,12 @@ export default function PaymentForm({
               <Building2 className="w-5 h-5 text-green-500" />
               <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Net Banking</h4>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                 Select Your Bank
               </label>
-              
+
               {/* Popular Banks */}
               <div className="mb-4">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Popular Banks:</p>
@@ -932,11 +914,10 @@ export default function PaymentForm({
                     <button
                       key={bank.code}
                       onClick={() => setSelectedBank(bank.name)}
-                      className={`p-4 border-2 rounded-xl transition-all duration-200 text-left ${
-                        selectedBank === bank.name
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                      }`}
+                      className={`p-4 border-2 rounded-xl transition-all duration-200 text-left ${selectedBank === bank.name
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        }`}
                     >
                       <div className="font-medium text-gray-900 dark:text-white text-sm">{bank.name}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{bank.code}</div>
@@ -944,7 +925,7 @@ export default function PaymentForm({
                   ))}
                 </div>
               </div>
-              
+
               {/* All Banks Dropdown */}
               <select
                 value={selectedBank}
@@ -968,17 +949,16 @@ export default function PaymentForm({
               <Wallet className="w-5 h-5 text-orange-500" />
               <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Digital Wallets</h4>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               {wallets.map((wallet) => (
                 <button
                   key={wallet.name}
                   onClick={() => setSelectedWallet(wallet.name)}
-                  className={`p-4 border-2 rounded-xl transition-all duration-200 ${
-                    selectedWallet === wallet.name
-                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                  }`}
+                  className={`p-4 border-2 rounded-xl transition-all duration-200 ${selectedWallet === wallet.name
+                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    }`}
                 >
                   <div className="text-center">
                     <div className="text-2xl mb-2">{wallet.icon}</div>
@@ -1049,11 +1029,10 @@ export default function PaymentForm({
         <button
           onClick={processPayment}
           disabled={processingPayment || !isFormValid()}
-          className={`w-full py-5 px-6 rounded-2xl font-bold text-xl transition-all duration-300 relative overflow-hidden ${
-            processingPayment || !isFormValid()
-              ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-teal-600 via-emerald-600 to-green-600 hover:from-teal-700 hover:via-emerald-700 hover:to-green-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105'
-          }`}
+          className={`w-full py-5 px-6 rounded-2xl font-bold text-xl transition-all duration-300 relative overflow-hidden ${processingPayment || !isFormValid()
+            ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            : 'bg-gradient-to-r from-teal-600 via-emerald-600 to-green-600 hover:from-teal-700 hover:via-emerald-700 hover:to-green-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105'
+            }`}
         >
           {processingPayment ? (
             <div className="flex items-center justify-center space-x-3">
@@ -1085,7 +1064,7 @@ export default function PaymentForm({
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Securely processing your payment of ₹{amount.toLocaleString()} via {selectedMethod.toUpperCase()}
             </p>
-            
+
             {/* Payment Method Specific Messages */}
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mb-4">
               <div className="text-sm text-blue-700 dark:text-blue-300">
@@ -1121,7 +1100,7 @@ export default function PaymentForm({
                 )}
               </div>
             </div>
-            
+
             <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 mb-4">
               <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">
                 ✅ Secure Processing:
@@ -1133,7 +1112,7 @@ export default function PaymentForm({
                 <li>• Instant confirmation</li>
               </ul>
             </div>
-            
+
             <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
               <Shield className="w-4 h-4 text-green-500" />
               <span>Powered by GharBazaar Secure Payment</span>

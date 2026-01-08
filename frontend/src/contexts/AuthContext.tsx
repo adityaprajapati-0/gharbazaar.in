@@ -44,12 +44,12 @@ export const useAuth = () => {
   return context
 }
 
-export const AuthProvider = ({ 
-  children, 
-  loadingComponent 
-}: { 
+export const AuthProvider = ({
+  children,
+  loadingComponent
+}: {
   children: ReactNode
-  loadingComponent?: ReactNode 
+  loadingComponent?: ReactNode
 }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -60,6 +60,46 @@ export const AuthProvider = ({
     // PERFORMANCE OPTIMIZATION: Instant auth check
     const initAuth = () => {
       try {
+        // 0. Check demo mode FIRST (highest priority)
+        if (typeof window !== 'undefined') {
+          const demoMode = localStorage.getItem('demo_mode');
+          const demoUserStr = localStorage.getItem('demo_user');
+
+          if (demoMode === 'true' && demoUserStr) {
+            try {
+              const demoUser = JSON.parse(demoUserStr);
+              // Create a mock Firebase User object for demo mode
+              const mockUser = {
+                uid: demoUser.uid,
+                email: demoUser.email,
+                displayName: demoUser.displayName,
+                photoURL: null,
+                emailVerified: true,
+                metadata: {},
+                providerData: [],
+                refreshToken: '',
+                tenantId: null,
+                delete: async () => { },
+                getIdToken: async () => 'demo-token',
+                getIdTokenResult: async () => ({} as any),
+                reload: async () => { },
+                toJSON: () => ({}),
+                isAnonymous: false,
+                phoneNumber: null,
+                providerId: 'demo',
+              } as unknown as User;
+
+              setUser(mockUser);
+              // Store role for demo mode
+              localStorage.setItem('userRole', demoUser.role);
+              setLoading(false);
+              return;
+            } catch (e) {
+              console.error('Demo mode parse error:', e);
+            }
+          }
+        }
+
         // 1. Check cached user first (instant)
         const cachedUser = AuthUtils.getCachedUser()
         if (cachedUser) {
@@ -95,7 +135,7 @@ export const AuthProvider = ({
               }
               setUser(userData as any)
               AuthUtils.cacheUser(userData)
-              
+
               // Background role fetch (non-blocking)
               fetchUserRole(firebaseUser.uid)
             } else {
@@ -104,7 +144,7 @@ export const AuthProvider = ({
             }
             setLoading(false)
           })
-          
+
           // Cleanup subscription
           return unsubscribe
         } else {
@@ -127,7 +167,7 @@ export const AuthProvider = ({
   // Background role fetching (non-blocking)
   const fetchUserRole = async (uid: string) => {
     if (!db) return
-    
+
     try {
       const userDoc = await getDoc(doc(db, 'users', uid))
       if (userDoc.exists()) {
@@ -142,7 +182,7 @@ export const AuthProvider = ({
   // Save user to Firestore (background, non-blocking)
   const saveUserToFirestore = async (user: User) => {
     if (!db) return
-    
+
     try {
       const userRef = doc(db, 'users', user.uid)
       const userSnap = await getDoc(userRef)
@@ -180,7 +220,7 @@ export const AuthProvider = ({
     try {
       setAuthLoading(true)
       const result = await signInWithEmailAndPassword(auth, email, password)
-      
+
       // Immediate user data setup
       const userData = {
         uid: result.user.uid,
@@ -188,25 +228,25 @@ export const AuthProvider = ({
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
       }
-      
+
       // Cache immediately
       AuthUtils.cacheUser(userData)
       setUser(userData as any)
-      
+
       // Background processing (non-blocking)
       setTimeout(() => {
         saveUserToFirestore(result.user)
         fetchUserRole(result.user.uid)
       }, 0)
-      
+
       toast.success('Welcome back!')
-      
+
       // Show loader for smooth transition
       setTimeout(() => {
         router.push('/dashboard')
         setAuthLoading(false)
       }, 1500)
-      
+
     } catch (error: any) {
       setAuthLoading(false)
       console.error('Login error:', error)
@@ -223,10 +263,10 @@ export const AuthProvider = ({
     try {
       setAuthLoading(true)
       const result = await createUserWithEmailAndPassword(auth, email, password)
-      
+
       // Update profile
       await updateProfile(result.user, { displayName: name })
-      
+
       // Immediate user data setup
       const userData = {
         uid: result.user.uid,
@@ -234,25 +274,25 @@ export const AuthProvider = ({
         displayName: name,
         photoURL: result.user.photoURL,
       }
-      
+
       // Cache immediately
       AuthUtils.cacheUser(userData)
       setUser(userData as any)
-      
+
       // Background processing
       setTimeout(() => {
         sendEmailVerification(result.user)
         saveUserToFirestore(result.user)
       }, 0)
-      
+
       toast.success('Account created! Please verify your email.')
-      
+
       // Show loader for smooth transition
       setTimeout(() => {
         router.push('/dashboard')
         setAuthLoading(false)
       }, 1500)
-      
+
     } catch (error: any) {
       setAuthLoading(false)
       console.error('Signup error:', error)
@@ -269,31 +309,31 @@ export const AuthProvider = ({
     try {
       setAuthLoading(true)
       const result = await signInWithPopup(auth, googleProvider)
-      
+
       const userData = {
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
       }
-      
+
       AuthUtils.cacheUser(userData)
       setUser(userData as any)
-      
+
       // Background processing
       setTimeout(() => {
         saveUserToFirestore(result.user)
         fetchUserRole(result.user.uid)
       }, 0)
-      
+
       toast.success('Signed in with Google!')
-      
+
       // Show loader for smooth transition
       setTimeout(() => {
         router.push('/dashboard')
         setAuthLoading(false)
       }, 1500)
-      
+
       return result.user
     } catch (error: any) {
       setAuthLoading(false)
@@ -324,7 +364,7 @@ export const AuthProvider = ({
       return confirmationResult
     } catch (error: any) {
       console.error('Phone login error:', error)
-      
+
       const recaptchaContainer = document.getElementById('recaptcha-container')
       if (recaptchaContainer) {
         recaptchaContainer.innerHTML = ''
@@ -348,14 +388,14 @@ export const AuthProvider = ({
       if (auth) {
         await signOut(auth)
       }
-      
+
       // Clear everything immediately
       AuthUtils.clearCache()
       setUser(null)
-      
+
       toast.success('Logged out successfully')
       router.push('/')
-      
+
     } catch (error: any) {
       console.error('Logout error:', error)
       // Force logout even on error
@@ -392,7 +432,7 @@ export const AuthProvider = ({
           displayName,
           ...(photoURL && { photoURL }),
         })
-        
+
         // Update cached user
         const cachedUser = AuthUtils.getCachedUser()
         if (cachedUser) {
@@ -400,7 +440,7 @@ export const AuthProvider = ({
           AuthUtils.cacheUser(updatedUser)
           setUser(updatedUser)
         }
-        
+
         toast.success('Profile updated!')
       }
     } catch (error: any) {
@@ -443,12 +483,12 @@ export const AuthProvider = ({
   return (
     <AuthContext.Provider value={value}>
       {/* Authentication Loader */}
-      <Loader 
-        isVisible={authLoading} 
+      <Loader
+        isVisible={authLoading}
         message="Signing you in securely..."
         duration={1500}
       />
-      
+
       {loading ? (loadingComponent || null) : children}
     </AuthContext.Provider>
   )

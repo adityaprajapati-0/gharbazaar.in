@@ -242,7 +242,7 @@ export default function LegalPartnerSignupPage() {
           <div className="mb-8">
             <div className="flex items-center space-x-4 mb-6">
               <img 
-                src="/images/gharbazaar logo.jpeg" 
+                src="/images/gharbazar-logo.jpeg" 
                 alt="GharBazaar Logo" 
                 className="h-16 w-16 rounded-2xl shadow-lg object-cover"
               />
@@ -294,7 +294,7 @@ export default function LegalPartnerSignupPage() {
           <div className="lg:hidden text-center mb-8">
             <div className="flex items-center justify-center mb-4">
               <img 
-                src="/images/gharbazaar logo.jpeg" 
+                src="/images/gharbazar-logo.jpeg" 
                 alt="GharBazaar Logo" 
                 className="h-16 w-16 rounded-2xl shadow-lg object-cover"
               />

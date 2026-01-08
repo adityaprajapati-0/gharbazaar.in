@@ -112,8 +112,8 @@ export function Header() {
   return (
     <>
       <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
-          ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200'
-          : 'bg-white/80 backdrop-blur-md border-b border-gray-100'
+        ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200'
+        : 'bg-white/80 backdrop-blur-md border-b border-gray-100'
         }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
@@ -121,9 +121,9 @@ export function Header() {
             <Link href="/" className="flex items-center space-x-3 group">
               <div className="relative">
                 <img
-                  src="/images/gharbazaar logo.jpeg"
+                  src="/images/gharbazar-logo.jpeg"
                   alt="GharBazaar Logo"
-                  className="h-10 w-10 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
+                  className="h-14 w-14 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
               <div>
@@ -138,8 +138,8 @@ export function Header() {
               <Link
                 href="/"
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/')
-                    ? 'text-teal-600 bg-teal-50'
-                    : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
+                  ? 'text-teal-600 bg-teal-50'
+                  : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
                   }`}
               >
                 Home
@@ -148,8 +148,8 @@ export function Header() {
               <Link
                 href="/about"
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/about')
-                    ? 'text-teal-600 bg-teal-50'
-                    : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
+                  ? 'text-teal-600 bg-teal-50'
+                  : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
                   }`}
               >
                 About
@@ -257,8 +257,8 @@ export function Header() {
               <Link
                 href="/founder"
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/founder')
-                    ? 'text-teal-600 bg-teal-50'
-                    : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
+                  ? 'text-teal-600 bg-teal-50'
+                  : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
                   }`}
               >
                 Founder
@@ -267,8 +267,8 @@ export function Header() {
               <Link
                 href="/pricing"
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/pricing')
-                    ? 'text-teal-600 bg-teal-50'
-                    : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
+                  ? 'text-teal-600 bg-teal-50'
+                  : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
                   }`}
               >
                 Pricing
@@ -277,8 +277,8 @@ export function Header() {
               <Link
                 href="/contact"
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${isActive('/contact')
-                    ? 'text-teal-600 bg-teal-50'
-                    : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
+                  ? 'text-teal-600 bg-teal-50'
+                  : 'text-gray-700 hover:text-teal-600 hover:bg-gray-50'
                   }`}
               >
                 Contact

@@ -10,9 +10,9 @@ interface LoaderProps {
   message?: string
 }
 
-export default function Loader({ 
-  isVisible, 
-  onComplete, 
+export default function Loader({
+  isVisible,
+  onComplete,
   duration = 2000,
   message = "Building trust, one home at a time"
 }: LoaderProps) {
@@ -59,7 +59,7 @@ export default function Loader({
   if (!isVisible) return null
 
   return (
-    <div 
+    <div
       className={`
         fixed inset-0 z-[9999] flex items-center justify-center
         bg-gradient-to-br from-gray-50 via-white to-teal-50
@@ -82,9 +82,9 @@ export default function Loader({
         <div className="absolute top-20 left-20 w-32 h-32 bg-teal-200/20 rounded-full blur-xl animate-float-slow"></div>
         <div className="absolute bottom-32 right-32 w-24 h-24 bg-emerald-200/20 rounded-full blur-xl animate-float-delayed"></div>
         <div className="absolute top-1/2 left-10 w-16 h-16 bg-blue-200/20 rounded-full blur-lg animate-float-fast"></div>
-        
+
         {/* Subtle Grid Pattern */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.02]"
           style={{
             backgroundImage: `
@@ -98,9 +98,9 @@ export default function Loader({
 
       {/* Main Content */}
       <div className="relative flex flex-col items-center justify-center space-y-8">
-        
+
         {/* Logo Container */}
-        <div 
+        <div
           className={`
             relative transition-all duration-700 ease-out
             ${animationPhase === 'enter' ? 'opacity-0 scale-90 translate-y-4' : 'opacity-100 scale-100 translate-y-0'}
@@ -108,27 +108,27 @@ export default function Loader({
         >
           {/* Logo Glow Effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-teal-400/20 via-emerald-400/20 to-blue-400/20 rounded-3xl blur-2xl scale-110 animate-pulse-slow"></div>
-          
+
           {/* Logo Background */}
           <div className="relative w-24 h-24 lg:w-32 lg:h-32 bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/50 flex items-center justify-center overflow-hidden">
             {/* Logo Image */}
             <div className="relative w-16 h-16 lg:w-20 lg:h-20">
               <Image
-                src="/images/gharbazaar logo.jpeg"
+                src="/images/gharbazar-logo.jpeg"
                 alt="GharBazaar"
                 fill
                 className="object-contain rounded-xl"
                 priority
               />
             </div>
-            
+
             {/* Shimmer Effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer"></div>
           </div>
         </div>
 
         {/* Brand Name */}
-        <div 
+        <div
           className={`
             text-center transition-all duration-700 delay-200 ease-out
             ${animationPhase === 'enter' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}
@@ -143,7 +143,7 @@ export default function Loader({
         </div>
 
         {/* Loading Animation */}
-        <div 
+        <div
           className={`
             relative transition-all duration-700 delay-400 ease-out
             ${animationPhase === 'enter' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}
@@ -184,7 +184,7 @@ export default function Loader({
                 </linearGradient>
               </defs>
             </svg>
-            
+
             {/* Center Dot */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-2 h-2 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full animate-pulse"></div>
@@ -200,7 +200,7 @@ export default function Loader({
         </div>
 
         {/* Loading Message */}
-        <div 
+        <div
           className={`
             text-center transition-all duration-700 delay-600 ease-out
             ${animationPhase === 'enter' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}
@@ -212,7 +212,7 @@ export default function Loader({
         </div>
 
         {/* Trust Indicators */}
-        <div 
+        <div
           className={`
             flex items-center space-x-6 transition-all duration-700 delay-800 ease-out
             ${animationPhase === 'enter' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}

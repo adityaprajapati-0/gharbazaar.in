@@ -10,7 +10,6 @@ import {
   Square,
   Star,
   CheckCircle,
-  Sparkles,
   Filter,
   List,
   Building2,
@@ -148,80 +147,91 @@ const properties: Property[] = [
   }
 ]
 
+// Declare Mappls global types
+declare global {
+  interface Window {
+    mappls: any
+    initMap2?: () => void
+  }
+}
+
 export default function MapViewPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [hoveredProperty, setHoveredProperty] = useState<Property | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
   const [map, setMap] = useState<any | null>(null)
   const [markers, setMarkers] = useState<any[]>([])
+  const [mapLoaded, setMapLoaded] = useState(false)
 
-  // Initialize Google Maps
+  // Initialize Mappls Map
   const initializeMap = useCallback(() => {
-    if (typeof window === 'undefined' || !window.google) return
+    if (typeof window === 'undefined' || !window.mappls) return
 
     const mapElement = document.getElementById('map')
     if (!mapElement) return
 
-    // Center map on India
-    const mapOptions: any = {
-      center: { lat: 20.5937, lng: 78.9629 },
-      zoom: 5,
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }]
-        }
-      ]
+    try {
+      // Center map on India
+      const mapplsMap = new window.mappls.Map('map', {
+        center: [20.5937, 78.9629],
+        zoom: 5,
+        zoomControl: true,
+        location: true,
+        search: false
+      })
+
+      setMap(mapplsMap)
+
+      // Create markers for each property
+      const newMarkers = properties.map((property) => {
+        const markerColor = property.featured ? '#f59e0b' : '#3b82f6'
+
+        // Create custom marker HTML
+        const markerHTML = `
+          <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 0C8.95 0 0 8.95 0 20c0 15 20 30 20 30s20-15 20-30C40 8.95 31.05 0 20 0z" fill="${markerColor}"/>
+            <circle cx="20" cy="20" r="8" fill="white"/>
+            <text x="20" y="25" text-anchor="middle" fill="${markerColor}" font-size="12" font-weight="bold">₹</text>
+          </svg>
+        `
+
+        const marker = new window.mappls.Marker({
+          map: mapplsMap,
+          position: { lat: property.coordinates.lat, lng: property.coordinates.lng },
+          title: property.title,
+          html: markerHTML,
+          width: 40,
+          height: 50
+        })
+
+        // Add hover listeners
+        marker.addListener('mouseover', () => {
+          setHoveredProperty(property)
+        })
+
+        marker.addListener('mouseout', () => {
+          setHoveredProperty(null)
+        })
+
+        marker.addListener('click', () => {
+          setSelectedProperty(property)
+          mapplsMap.panTo([property.coordinates.lat, property.coordinates.lng])
+          mapplsMap.setZoom(15)
+        })
+
+        return marker
+      })
+
+      setMarkers(newMarkers)
+    } catch (error) {
+      console.error('Error initializing Mappls map:', error)
     }
-
-    const googleMap = new window.google.maps.Map(mapElement, mapOptions)
-    setMap(googleMap)
-
-    // Create markers for each property
-    const newMarkers = properties.map((property) => {
-      const marker = new window.google.maps.Marker({
-        position: property.coordinates,
-        map: googleMap,
-        title: property.title,
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 0C8.95 0 0 8.95 0 20c0 15 20 30 20 30s20-15 20-30C40 8.95 31.05 0 20 0z" fill="${property.featured ? '#f59e0b' : '#3b82f6'}"/>
-              <circle cx="20" cy="20" r="8" fill="white"/>
-              <text x="20" y="25" text-anchor="middle" fill="${property.featured ? '#f59e0b' : '#3b82f6'}" font-size="12" font-weight="bold">₹</text>
-            </svg>
-          `)}`,
-          scaledSize: new window.google.maps.Size(40, 50),
-          anchor: new window.google.maps.Point(20, 50)
-        }
-      })
-
-      // Add hover listeners
-      marker.addListener('mouseover', () => {
-        setHoveredProperty(property)
-      })
-
-      marker.addListener('mouseout', () => {
-        setHoveredProperty(null)
-      })
-
-      marker.addListener('click', () => {
-        setSelectedProperty(property)
-        googleMap.panTo(property.coordinates)
-        googleMap.setZoom(15)
-      })
-
-      return marker
-    })
-
-    setMarkers(newMarkers)
   }, [])
 
-  // Load Google Maps script
+  // Load Mappls script
   useEffect(() => {
-    // Check if Google Maps API key is available
-    if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === 'your-google-maps-api-key') {
+    // Check if Mappls API key is available
+    if (!process.env.NEXT_PUBLIC_MAPPLS_API_KEY || process.env.NEXT_PUBLIC_MAPPLS_API_KEY === 'your_mappls_api_key_here') {
       // Show fallback message
       const mapElement = document.getElementById('map')
       if (mapElement) {
@@ -229,13 +239,13 @@ export default function MapViewPage() {
           <div class="flex items-center justify-center h-full bg-gray-100 dark:bg-gray-800">
             <div class="text-center p-8">
               <div class="text-6xl mb-4">🗺️</div>
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Google Maps API Key Required</h3>
-              <p class="text-gray-600 dark:text-gray-400 mb-4">To view the interactive map, please configure your Google Maps API key in the environment variables.</p>
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Mappls (Ola Maps) API Key Required</h3>
+              <p class="text-gray-600 dark:text-gray-400 mb-4">To view the interactive map, please configure your Mappls API key in the environment variables.</p>
               <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-left">
                 <p class="text-sm text-yellow-800 dark:text-yellow-200">
                   <strong>Setup Instructions:</strong><br/>
-                  1. Get API key from Google Cloud Console<br/>
-                  2. Add to .env.local: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key<br/>
+                  1. Get API key from <a href="https://apis.mappls.com/console/" target="_blank" class="underline">Mappls Console</a><br/>
+                  2. Add to .env.local: NEXT_PUBLIC_MAPPLS_API_KEY=your_key<br/>
                   3. Restart the development server
                 </p>
               </div>
@@ -246,16 +256,21 @@ export default function MapViewPage() {
       return
     }
 
-    if (window.google) {
+    if (window.mappls) {
       initializeMap()
       return
     }
 
+    // Define callback
+    window.initMap2 = () => {
+      setMapLoaded(true)
+      initializeMap()
+    }
+
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+    script.src = `https://apis.mappls.com/advancedmaps/api/${process.env.NEXT_PUBLIC_MAPPLS_API_KEY}/map_sdk?layer=vector&v=3.0&callback=initMap2`
     script.async = true
     script.defer = true
-    script.onload = initializeMap
     script.onerror = () => {
       const mapElement = document.getElementById('map')
       if (mapElement) {
@@ -263,7 +278,7 @@ export default function MapViewPage() {
           <div class="flex items-center justify-center h-full bg-gray-100 dark:bg-gray-800">
             <div class="text-center p-8">
               <div class="text-6xl mb-4">❌</div>
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Failed to Load Google Maps</h3>
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Failed to Load Mappls (Ola Maps)</h3>
               <p class="text-gray-600 dark:text-gray-400">Please check your API key and internet connection.</p>
             </div>
           </div>
@@ -276,6 +291,7 @@ export default function MapViewPage() {
       if (script.parentNode) {
         script.parentNode.removeChild(script)
       }
+      delete window.initMap2
     }
   }, [initializeMap])
 
@@ -299,7 +315,7 @@ export default function MapViewPage() {
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
             <MapPin className="mr-2 text-blue-500" size={24} />
-            Map View
+            Map View - Powered by Ola Maps
           </h1>
         </div>
 
@@ -328,13 +344,13 @@ export default function MapViewPage() {
                   <div
                     key={property.id}
                     className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedProperty?.id === property.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     onClick={() => {
                       setSelectedProperty(property)
                       if (map) {
-                        map.panTo(property.coordinates)
+                        map.panTo([property.coordinates.lat, property.coordinates.lng])
                         map.setZoom(15)
                       }
                     }}
@@ -437,7 +453,7 @@ export default function MapViewPage() {
             <button
               onClick={() => {
                 if (map) {
-                  map.setCenter({ lat: 20.5937, lng: 78.9629 })
+                  map.setCenter([20.5937, 78.9629])
                   map.setZoom(5)
                 }
               }}
@@ -449,12 +465,12 @@ export default function MapViewPage() {
 
             <button
               onClick={() => {
-                if (map && properties.length > 0 && window.google) {
-                  const bounds = new window.google.maps.LatLngBounds()
+                if (map && properties.length > 0 && window.mappls) {
+                  const bounds = new window.mappls.LatLngBounds()
                   properties.forEach(property => {
-                    bounds.extend(property.coordinates)
+                    bounds.extend([property.coordinates.lat, property.coordinates.lng])
                   })
-                  map.fitBounds(bounds)
+                  map.fitBounds(bounds, { padding: 50 })
                 }
               }}
               className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-2 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"

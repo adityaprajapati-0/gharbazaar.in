@@ -30,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${manrope.variable} font-sans`}>
+      <body className={`${inter.variable} ${manrope.variable} font-sans`} suppressHydrationWarning>
         <Providers>
           <Suspense fallback={<LoadingScreen />}>
             <LayoutWrapper>{children}</LayoutWrapper>
