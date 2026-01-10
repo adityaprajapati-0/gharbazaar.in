@@ -41,7 +41,7 @@ export default function ConversationsList({ onSelect, selectedId }: Conversation
         if (!user) return;
 
         try {
-            const token = await user.getIdToken();
+            const token = localStorage.getItem('auth_token');
             const response = await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL}/chat/conversations`,
                 {

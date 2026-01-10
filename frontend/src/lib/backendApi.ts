@@ -4,18 +4,18 @@ import { CONFIG } from '@/config';
 const API_BASE_URL = CONFIG.API.FULL_URL;
 
 /**
- * Get Firebase ID token for authenticated requests
+ * Get authentication token for backend API requests
+ * Uses localStorage to retrieve the JWT token from backend authentication
  */
-async function getFirebaseToken(): Promise<string | null> {
+async function getAuthToken(): Promise<string | null> {
     if (typeof window === 'undefined') return null;
 
     try {
-        const { auth } = await import('./firebase');
-        const user = auth.currentUser;
-        if (!user) return null;
-        return await user.getIdToken();
+        // Get token from localStorage (set during backend login)
+        const token = localStorage.getItem('auth_token');
+        return token;
     } catch (error) {
-        console.error('Error getting Firebase token:', error);
+        console.error('Error getting auth token:', error);
         return null;
     }
 }
@@ -24,7 +24,7 @@ async function getFirebaseToken(): Promise<string | null> {
  * Make authenticated API call to backend
  */
 async function backendApiCall(endpoint: string, options: RequestInit = {}) {
-    const token = await getFirebaseToken();
+    const token = await getAuthToken();
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -119,7 +119,7 @@ export const backendApi = {
             const formData = new FormData();
             formData.append('avatar', file);
 
-            const token = await getFirebaseToken();
+            const token = await getAuthToken();
             const response = await fetch(`${API_BASE_URL}/users/avatar`, {
                 method: 'POST',
                 headers: {
@@ -317,7 +317,7 @@ export const backendApi = {
             conversationId: string,
             onProgress?: (progress: number) => void
         ) => {
-            const token = await getFirebaseToken();
+            const token = await getAuthToken();
             const formData = new FormData();
             formData.append('file', file);
             formData.append('conversationId', conversationId);
@@ -603,6 +603,103 @@ export const backendApi = {
         clearHistory: async () => {
             return backendApiCall('/chatbot/history', {
                 method: 'DELETE',
+            });
+        },
+    },
+
+    // Employee endpoints
+    employee: {
+        getTickets: async (status: string = 'all') => {
+            return backendApiCall(`/employee/tickets?status=${status}`);
+        },
+
+        getActiveConversations: async () => {
+            return backendApiCall('/employee/active-conversations');
+        },
+
+        sendQuickResponse: async (ticketId: string, templateId: string) => {
+            return backendApiCall('/employee/quick-response', {
+                method: 'POST',
+                body: JSON.stringify({ ticketId, templateId }),
+            });
+        },
+
+        getUserHistory: async (userId: string) => {
+            return backendApiCall(`/employee/user-history/${userId}`);
+        },
+
+        getStats: async () => {
+            return backendApiCall('/employee/stats');
+        },
+    },
+
+    // Tickets endpoints
+    tickets: {
+        create: async (data: {
+            categoryId: string;
+            subCategoryId: string;
+            categoryTitle: string;
+            subCategoryTitle: string;
+            problem: string;
+            userRole: string;
+        }) => {
+            return backendApiCall('/tickets', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+        },
+
+        getUserTickets: async () => {
+            return backendApiCall('/tickets');
+        },
+
+        getAllTickets: async () => {
+            return backendApiCall('/tickets/employee/all');
+        },
+
+        getById: async (id: string) => {
+            return backendApiCall(`/tickets/${id}`);
+        },
+
+        assign: async (id: string) => {
+            return backendApiCall(`/tickets/${id}/assign`, {
+                method: 'POST',
+            });
+        },
+
+        sendMessage: async (id: string, message: string) => {
+            return backendApiCall(`/tickets/${id}/messages`, {
+                method: 'POST',
+                body: JSON.stringify({ message }),
+            });
+        },
+
+        close: async (id: string) => {
+            return backendApiCall(`/tickets/${id}/close`, {
+                method: 'PUT',
+            });
+        },
+
+        uploadFile: async (id: string, file: File) => {
+            const token = await getAuthToken();
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${API_BASE_URL}/tickets/${id}/files`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            return await response.json();
+        },
+
+        submitFeedback: async (id: string, rating: number) => {
+            return backendApiCall(`/tickets/${id}/feedback`, {
+                method: 'POST',
+                body: JSON.stringify({ rating }),
             });
         },
     },

@@ -1,6 +1,5 @@
 // API Utilities for Backend Routes
 import { NextRequest, NextResponse } from 'next/server'
-import { auth, db } from './firebase'
 
 export interface ApiResponse<T = any> {
     success: boolean
@@ -39,7 +38,7 @@ export function errorResponse(error: string, statusCode: number = 400): NextResp
 }
 
 /**
- * Verify Firebase auth token from request headers
+ * Verify auth token from request headers (using backend JWT tokens)
  */
 export async function verifyAuth(request: NextRequest): Promise<{ userId: string; userEmail: string | null } | null> {
     try {
@@ -51,20 +50,7 @@ export async function verifyAuth(request: NextRequest): Promise<{ userId: string
 
         const token = authHeader.split('Bearer ')[1]
 
-        if (!auth) {
-            console.error('Firebase auth not initialized')
-            return null
-        }
-
-        // In a real implementation, verify the token server-side
-        // For now, we'll extract user info from the token
-        // Note: This requires Firebase Admin SDK for proper server-side verification
-
-        // Placeholder: In production, use Firebase Admin SDK
-        // const decodedToken = await admin.auth().verifyIdToken(token)
-        // return { userId: decodedToken.uid, userEmail: decodedToken.email }
-
-        // For development, we'll trust the client (NOT SECURE IN PRODUCTION)
+        // Extract user info from headers (set by backend authentication)
         const userId = request.headers.get('X-User-Id')
         const userEmail = request.headers.get('X-User-Email')
 

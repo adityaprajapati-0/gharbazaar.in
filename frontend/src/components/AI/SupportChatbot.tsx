@@ -5,6 +5,7 @@ import { MessageCircle, X, Minimize2, Send, User, Bot, ArrowLeft, FileUp, Paperc
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocket } from '@/contexts/SocketContext';
 import { useToast } from '@/components/Toast/ToastProvider';
+import { backendApi } from '@/lib/backendApi';
 import { faqKnowledgeBase, getCategoriesByRole, getCategory, getSubCategory, type FAQCategory, type FAQSubCategory } from '@/lib/faqKnowledgeBase';
 
 type ChatMode = 'categories' | 'subcategories' | 'resolution' | 'agent-request' | 'agent-chat';
@@ -187,25 +188,22 @@ export default function SupportChatbot({ userRole = 'buyer' }: SupportChatbotPro
         setInputMessage('');
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
             // Create ticket via API
-            const response = await fetch(`${apiUrl}/api/v1/tickets`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    categoryId: ticketData.categoryId,
-                    subCategoryId: ticketData.subCategoryId,
-                    categoryTitle: ticketData.categoryTitle,
-                    subCategoryTitle: ticketData.subCategoryTitle,
-                    problem,
-                    userRole
-                })
+            const response = await backendApi.tickets.create({
+                categoryId: ticketData.categoryId,
+                subCategoryId: ticketData.subCategoryId,
+                categoryTitle: ticketData.categoryTitle,
+                subCategoryTitle: ticketData.subCategoryTitle,
+                problem,
+                userRole
             });
 
-            if (!response.ok) throw new Error('Failed to create ticket');
+            if (!response.success) throw new Error(response.error || 'Failed to create ticket');
 
-            const data = await response.json();
-            setTicketData(prev => prev ? { ...prev, id: data.ticketId, userProblem: problem } : null);
+            const ticket = response.data.ticket;
+            const ticketId = ticket._id || ticket.id;
+
+            setTicketData(prev => prev ? { ...prev, id: ticketId, userProblem: problem } : null);
 
             addBotMessage('Thank you! I\'ve created a support ticket and notified our team. An agent will join this conversation shortly to assist you.');
 
@@ -224,12 +222,7 @@ export default function SupportChatbot({ userRole = 'buyer' }: SupportChatbotPro
         setInputMessage('');
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-            await fetch(`${apiUrl}/api/v1/tickets/${ticketData.id}/messages`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message })
-            });
+            await backendApi.tickets.sendMessage(ticketData.id, message);
         } catch (error) {
             console.error('Error sending message:', error);
             toast.error('Failed to send message');
@@ -245,13 +238,9 @@ export default function SupportChatbot({ userRole = 'buyer' }: SupportChatbotPro
         formData.append('file', file);
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${apiUrl}/api/v1/tickets/${ticketData.id}/files`, {
-                method: 'POST',
-                body: formData
-            });
+            const response = await backendApi.tickets.uploadFile(ticketData.id, file);
 
-            if (!response.ok) throw new Error('Upload failed');
+            if (!response.success) throw new Error(response.error || 'Upload failed');
 
             addUserMessage(`📎 Sent file: ${file.name}`);
             toast.success('File uploaded successfully');
@@ -268,12 +257,7 @@ export default function SupportChatbot({ userRole = 'buyer' }: SupportChatbotPro
         if (!ticketData?.id || feedbackRating === 0) return;
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-            await fetch(`${apiUrl}/api/v1/tickets/${ticketData.id}/feedback`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rating: feedbackRating })
-            });
+            await backendApi.tickets.submitFeedback(ticketData.id, feedbackRating);
 
             toast.success('Thank you for your feedback!');
             setShowFeedback(false);
@@ -377,6 +361,7 @@ export default function SupportChatbot({ userRole = 'buyer' }: SupportChatbotPro
             {!isOpen && (
                 <button
                     onClick={handleOpen}
+                    data-chatbot-trigger
                     className={`fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 z-50 ${isBlinking ? 'animate-pulse' : ''
                         }`}
                     aria-label="Open Support Chat"

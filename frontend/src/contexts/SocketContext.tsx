@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { CONFIG } from '@/config';
 
 interface Message {
     id: string;
@@ -50,12 +51,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        // Get Firebase token
+        // Get auth token from localStorage
         const initSocket = async () => {
             try {
-                const token = await user.getIdToken();
+                // Get token from localStorage (set by backend login)
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
-                const newSocket = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000', {
+                if (!token) {
+                    console.warn('No auth token found, skipping socket connection');
+                    return;
+                }
+
+                const newSocket = io(CONFIG.API.SOCKET_URL, {
                     auth: { token },
                     reconnection: true,
                     reconnectionDelay: 1000,

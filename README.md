@@ -18,7 +18,7 @@ GharBazaar is a modern, transparent property platform that connects buyers, sell
 
 - **🚫 Zero Broker Interference** - Direct property transactions
 - **💰 Transparent Pricing** - ₹1000 one-time listing fee
-- **🔒 Bank-Level Security** - Firebase authentication & encryption
+- **🔒 Backend-Level Security** - Secure authentication & encryption
 - **📱 Fully Responsive** - Mobile-first design approach
 - **⚡ Lightning Fast** - Optimized for Core Web Vitals
 - **🎨 Modern UI/UX** - Professional startup-grade design
@@ -36,11 +36,9 @@ Lucide React      → Beautiful icons
 Premium Loader    → Brand-centric loading system
 ```
 
-### **Backend & Services**
+### **Services**
 ```
-Firebase Auth     → Authentication (Email, Google, Phone)
-Firestore         → NoSQL database
-Firebase Storage  → File storage
+Backend API       → Custom Node.js backend
 Vercel            → Deployment & hosting
 ```
 

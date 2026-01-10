@@ -54,7 +54,7 @@ export default function AgentDashboard() {
 
         const initSocket = async () => {
             // Get Firebase ID token
-            const token = await user.getIdToken();
+            const token = localStorage.getItem('auth_token');
 
             const newSocket = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000', {
                 auth: { token },

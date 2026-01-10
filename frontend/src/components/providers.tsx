@@ -10,6 +10,7 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { PaymentProvider } from '@/contexts/PaymentContext'
 import { SellerSubscriptionProvider } from '@/contexts/SellerSubscriptionContext'
 import { SocketProvider } from '@/contexts/SocketContext'
+import { LocaleProvider } from '@/contexts/LocaleContext'
 import { ToastProvider } from '@/components/Toast/ToastProvider'
 import LoadingScreen from './LoadingScreen'
 
@@ -26,22 +27,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <LoaderProvider>
-          <AuthProvider loadingComponent={<LoadingScreen />}>
-            <FavoritesProvider>
-              <PaymentProvider>
-                <SellerSubscriptionProvider>
-                  <SocketProvider>
-                    <ToastProvider>
-                      {children}
-                    </ToastProvider>
-                  </SocketProvider>
-                </SellerSubscriptionProvider>
-              </PaymentProvider>
-            </FavoritesProvider>
-            <Toaster position="top-right" />
-          </AuthProvider>
-        </LoaderProvider>
+        <LocaleProvider>
+          <LoaderProvider>
+            <AuthProvider loadingComponent={<LoadingScreen />}>
+              <FavoritesProvider>
+                <PaymentProvider>
+                  <SellerSubscriptionProvider>
+                    <SocketProvider>
+                      <ToastProvider>
+                        {children}
+                      </ToastProvider>
+                    </SocketProvider>
+                  </SellerSubscriptionProvider>
+                </PaymentProvider>
+              </FavoritesProvider>
+              <Toaster position="top-right" />
+            </AuthProvider>
+          </LoaderProvider>
+        </LocaleProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )

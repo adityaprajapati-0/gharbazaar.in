@@ -37,11 +37,11 @@ export default function ListingDetailPage() {
     e.preventDefault()
     try {
       setSubmitting(true)
-      await bidsAPI.create({
-        listingId: listing.id,
-        amount: Number(bidAmount),
-        message: bidMessage,
-      })
+      await bidsAPI.create(
+        listing.id,
+        Number(bidAmount),
+        bidMessage
+      )
       alert('Bid placed successfully!')
       setBidMessage('')
     } catch (error: any) {

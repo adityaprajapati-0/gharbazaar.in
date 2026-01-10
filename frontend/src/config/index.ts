@@ -8,6 +8,8 @@
 
 /**
  * Backend API Configuration
+ * NOTE: Backend has been removed. This configuration is kept for reference only.
+ * Consider removing API calls that depend on this configuration.
  */
 export const API_CONFIG = {
     // Base URL for backend API
@@ -38,15 +40,16 @@ export const API_CONFIG = {
 
 /**
  * Firebase Authentication & Services
+ * DISABLED - Firebase has been removed to prevent backend connection disruptions
  */
 export const FIREBASE_CONFIG = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
+    apiKey: '', // process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+    authDomain: '', // process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+    projectId: '', // process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+    storageBucket: '', // process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+    messagingSenderId: '', // process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+    appId: '', // process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+    measurementId: '', // process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
 } as const
 
 // ==================== Maps Configuration ====================
@@ -253,11 +256,6 @@ export function validateConfig() {
     // Check Firebase
     if (!FIREBASE_CONFIG.apiKey) {
         warnings.push('Firebase API key not configured')
-    }
-
-    // Check Backend API
-    if (API_CONFIG.BASE_URL.includes('localhost')) {
-        warnings.push('Using localhost for backend API (development mode)')
     }
 
     // Check Maps

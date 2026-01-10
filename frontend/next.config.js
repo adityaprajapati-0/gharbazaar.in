@@ -25,7 +25,6 @@ const nextConfig = {
   
   // Environment variables
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   },
   
@@ -37,7 +36,7 @@ const nextConfig = {
   // Experimental features for better performance
   experimental: {
     // optimizeCss: true, // Temporarily disabled due to critters dependency issue
-    optimizePackageImports: ['lucide-react', 'firebase'],
+    optimizePackageImports: ['lucide-react'],
   },
   
   // Compression

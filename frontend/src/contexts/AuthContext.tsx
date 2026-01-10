@@ -1,33 +1,30 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import {
-  User,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  updateProfile,
-  sendEmailVerification,
-  signInWithPhoneNumber,
-  ConfirmationResult,
-} from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
-import { auth, googleProvider, db, setupRecaptcha, AuthUtils } from '@/lib/firebase'
+import { AuthUtils } from '@/lib/firebase'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import Loader from '@/components/ui/Loader'
+import { backendApi } from '@/lib/backendApi'
+
+// Simple User type (no Firebase dependency)
+interface SimpleUser {
+  uid: string
+  email: string | null
+  displayName: string | null
+  photoURL: string | null
+  emailVerified?: boolean
+  phoneNumber?: string | null
+}
 
 interface AuthContextType {
-  user: User | null
+  user: SimpleUser | null
   loading: boolean
   authLoading: boolean
   signup: (email: string, password: string, name: string) => Promise<void>
   login: (email: string, password: string) => Promise<void>
-  loginWithGoogle: () => Promise<User | void>
-  loginWithPhone: (phoneNumber: string) => Promise<ConfirmationResult>
+  loginWithGoogle: () => Promise<void>
+  loginWithPhone: (phoneNumber: string) => Promise<any>
   logout: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   updateUserProfile: (displayName: string, photoURL?: string) => Promise<void>
@@ -51,56 +48,40 @@ export const AuthProvider = ({
   children: ReactNode
   loadingComponent?: ReactNode
 }) => {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<SimpleUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    // PERFORMANCE OPTIMIZATION: Instant auth check
+    // Check for existing authentication on mount
     const initAuth = () => {
       try {
-        // 0. Check demo mode FIRST (highest priority)
+        // Check demo mode first
         if (typeof window !== 'undefined') {
-          const demoMode = localStorage.getItem('demo_mode');
-          const demoUserStr = localStorage.getItem('demo_user');
+          const demoMode = localStorage.getItem('demo_mode')
+          const demoUserStr = localStorage.getItem('demo_user')
 
           if (demoMode === 'true' && demoUserStr) {
             try {
-              const demoUser = JSON.parse(demoUserStr);
-              // Create a mock Firebase User object for demo mode
-              const mockUser = {
+              const demoUser = JSON.parse(demoUserStr)
+              setUser({
                 uid: demoUser.uid,
                 email: demoUser.email,
                 displayName: demoUser.displayName,
                 photoURL: null,
                 emailVerified: true,
-                metadata: {},
-                providerData: [],
-                refreshToken: '',
-                tenantId: null,
-                delete: async () => { },
-                getIdToken: async () => 'demo-token',
-                getIdTokenResult: async () => ({} as any),
-                reload: async () => { },
-                toJSON: () => ({}),
-                isAnonymous: false,
-                phoneNumber: null,
-                providerId: 'demo',
-              } as unknown as User;
-
-              setUser(mockUser);
-              // Store role for demo mode
-              localStorage.setItem('userRole', demoUser.role);
-              setLoading(false);
-              return;
+              })
+              localStorage.setItem('userRole', demoUser.role)
+              setLoading(false)
+              return
             } catch (e) {
-              console.error('Demo mode parse error:', e);
+              console.error('Demo mode parse error:', e)
             }
           }
         }
 
-        // 1. Check cached user first (instant)
+        // Check cached user from localStorage
         const cachedUser = AuthUtils.getCachedUser()
         if (cachedUser) {
           setUser(cachedUser)
@@ -108,45 +89,11 @@ export const AuthProvider = ({
           return
         }
 
-        // 2. Check Firebase current user (fast)
-        const currentUser = AuthUtils.getCurrentUser()
-        if (currentUser) {
-          const userData = {
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL,
-          }
-          setUser(userData as any)
-          AuthUtils.cacheUser(userData)
-          setLoading(false)
-          return
-        }
-
-        // 3. Only then listen to auth state (background)
-        if (auth) {
-          const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            if (firebaseUser) {
-              const userData = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: firebaseUser.displayName,
-                photoURL: firebaseUser.photoURL,
-              }
-              setUser(userData as any)
-              AuthUtils.cacheUser(userData)
-
-              // Background role fetch (non-blocking)
-              fetchUserRole(firebaseUser.uid)
-            } else {
-              setUser(null)
-              AuthUtils.clearCache()
-            }
-            setLoading(false)
-          })
-
-          // Cleanup subscription
-          return unsubscribe
+        // Check if we have an auth token
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+        if (token) {
+          // Validate token with backend
+          verifyTokenWithBackend(token)
         } else {
           setLoading(false)
         }
@@ -156,92 +103,62 @@ export const AuthProvider = ({
       }
     }
 
-    const unsubscribe = initAuth()
+    // Safety timeout
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth initialization timeout - proceeding anyway')
+      setLoading(false)
+    }, 5000)
+
+    initAuth()
+
     return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe()
-      }
+      clearTimeout(timeoutId)
     }
   }, [])
 
-  // Background role fetching (non-blocking)
-  const fetchUserRole = async (uid: string) => {
-    if (!db) return
-
+  // Verify token with backend
+  const verifyTokenWithBackend = async (token: string) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', uid))
-      if (userDoc.exists()) {
-        const userData = userDoc.data()
-        localStorage.setItem('userRole', userData.role || 'buyer')
-      }
-    } catch (error) {
-      console.error('Role fetch error:', error)
-    }
-  }
-
-  // Save user to Firestore (background, non-blocking)
-  const saveUserToFirestore = async (user: User) => {
-    if (!db) return
-
-    try {
-      const userRef = doc(db, 'users', user.uid)
-      const userSnap = await getDoc(userRef)
-
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        phoneNumber: user.phoneNumber,
-        emailVerified: user.emailVerified,
-        lastLogin: new Date().toISOString(),
-      }
-
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          ...userData,
-          createdAt: new Date().toISOString(),
-          role: 'buyer', // Default role
-        })
+      const response = await backendApi.auth.verifyToken(token)
+      if (response.success && response.data) {
+        const userData = response.data.user
+        setUser(userData)
+        AuthUtils.cacheUser(userData)
       } else {
-        await setDoc(userRef, userData, { merge: true })
+        // Invalid token, clear it
+        localStorage.removeItem('auth_token')
+        AuthUtils.clearCache()
       }
     } catch (error) {
-      console.error('Error saving user to Firestore:', error)
+      console.error('Token verification error:', error)
+      localStorage.removeItem('auth_token')
+      AuthUtils.clearCache()
+    } finally {
+      setLoading(false)
     }
   }
 
-  // OPTIMIZED LOGIN: Immediate redirect, background processing
+  // Login with backend API
   const login = async (email: string, password: string) => {
-    if (!auth) {
-      throw new Error('Authentication not configured. Please set up Firebase.')
-    }
-
     try {
       setAuthLoading(true)
-      const result = await signInWithEmailAndPassword(auth, email, password)
+      const response = await backendApi.auth.login(email, password)
 
-      // Immediate user data setup
-      const userData = {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
+      if (!response.success) {
+        throw new Error(response.error || 'Login failed')
       }
 
-      // Cache immediately
-      AuthUtils.cacheUser(userData)
-      setUser(userData as any)
+      // Store token and user data
+      const { token, user: userData } = response.data
+      localStorage.setItem('auth_token', token)
 
-      // Background processing (non-blocking)
-      setTimeout(() => {
-        saveUserToFirestore(result.user)
-        fetchUserRole(result.user.uid)
-      }, 0)
+      // Cache user data
+      AuthUtils.cacheUser(userData)
+      setUser(userData)
 
       toast.success('Welcome back!')
 
-      // Show loader for smooth transition
+      // Navigate to dashboard
       setTimeout(() => {
         router.push('/dashboard')
         setAuthLoading(false)
@@ -254,40 +171,31 @@ export const AuthProvider = ({
     }
   }
 
-  // OPTIMIZED SIGNUP: Same pattern
+  // Signup with backend API
   const signup = async (email: string, password: string, name: string) => {
-    if (!auth) {
-      throw new Error('Authentication not configured. Please set up Firebase.')
-    }
-
     try {
       setAuthLoading(true)
-      const result = await createUserWithEmailAndPassword(auth, email, password)
-
-      // Update profile
-      await updateProfile(result.user, { displayName: name })
-
-      // Immediate user data setup
-      const userData = {
-        uid: result.user.uid,
-        email: result.user.email,
+      const response = await backendApi.auth.register({
+        email,
+        password,
         displayName: name,
-        photoURL: result.user.photoURL,
+      })
+
+      if (!response.success) {
+        throw new Error(response.error || 'Signup failed')
       }
 
-      // Cache immediately
+      // Store token and user data
+      const { token, user: userData } = response.data
+      localStorage.setItem('auth_token', token)
+
+      // Cache user data
       AuthUtils.cacheUser(userData)
-      setUser(userData as any)
+      setUser(userData)
 
-      // Background processing
-      setTimeout(() => {
-        sendEmailVerification(result.user)
-        saveUserToFirestore(result.user)
-      }, 0)
+      toast.success('Account created! Welcome to GharBazaar.')
 
-      toast.success('Account created! Please verify your email.')
-
-      // Show loader for smooth transition
+      // Navigate to dashboard
       setTimeout(() => {
         router.push('/dashboard')
         setAuthLoading(false)
@@ -300,119 +208,47 @@ export const AuthProvider = ({
     }
   }
 
-  // Login with Google
+  // Login with Google (placeholder - implement with backend OAuth)
   const loginWithGoogle = async () => {
-    if (!auth || !googleProvider) {
-      throw new Error('Authentication not configured. Please set up Firebase.')
-    }
-
-    try {
-      setAuthLoading(true)
-      const result = await signInWithPopup(auth, googleProvider)
-
-      const userData = {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-      }
-
-      AuthUtils.cacheUser(userData)
-      setUser(userData as any)
-
-      // Background processing
-      setTimeout(() => {
-        saveUserToFirestore(result.user)
-        fetchUserRole(result.user.uid)
-      }, 0)
-
-      toast.success('Signed in with Google!')
-
-      // Show loader for smooth transition
-      setTimeout(() => {
-        router.push('/dashboard')
-        setAuthLoading(false)
-      }, 1500)
-
-      return result.user
-    } catch (error: any) {
-      setAuthLoading(false)
-      console.error('Google login error:', error)
-      throw new Error(error.message || 'Failed to sign in with Google')
-    }
+    toast.error('Google login is not yet implemented with backend API')
+    // TODO: Implement OAuth flow with backend
+    throw new Error('Not implemented')
   }
 
-  // Login with Phone
-  const loginWithPhone = async (phoneNumber: string): Promise<ConfirmationResult> => {
-    if (!auth) {
-      throw new Error('Authentication not configured. Please set up Firebase.')
-    }
-
-    try {
-      const recaptchaContainer = document.getElementById('recaptcha-container')
-      if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = ''
-      }
-
-      const recaptchaVerifier = setupRecaptcha('recaptcha-container')
-      if (!recaptchaVerifier) {
-        throw new Error('Failed to initialize reCAPTCHA. Please refresh the page.')
-      }
-
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
-      toast.success('OTP sent successfully!')
-      return confirmationResult
-    } catch (error: any) {
-      console.error('Phone login error:', error)
-
-      const recaptchaContainer = document.getElementById('recaptcha-container')
-      if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = ''
-      }
-
-      if (error.code === 'auth/invalid-phone-number') {
-        throw new Error('Invalid phone number format. Please include country code (e.g., +91)')
-      } else if (error.code === 'auth/too-many-requests') {
-        throw new Error('Too many attempts. Please try again later.')
-      } else if (error.code === 'auth/quota-exceeded') {
-        throw new Error('SMS quota exceeded. Please try again later or use another login method.')
-      } else {
-        throw new Error(error.message || 'Failed to send OTP')
-      }
-    }
+  // Login with Phone (placeholder)
+  const loginWithPhone = async (phoneNumber: string): Promise<any> => {
+    toast.error('Phone login is not yet implemented with backend API')
+    // TODO: Implement phone auth with backend
+    throw new Error('Not implemented')
   }
 
-  // OPTIMIZED LOGOUT: Immediate redirect
+  // Logout
   const logout = async () => {
     try {
-      if (auth) {
-        await signOut(auth)
-      }
-
-      // Clear everything immediately
+      // Call backend logout endpoint
+      await backendApi.auth.logout()
+    } catch (error) {
+      console.error('Backend logout error:', error)
+    } finally {
+      // Clear local data regardless of backend response
+      localStorage.removeItem('auth_token')
       AuthUtils.clearCache()
       setUser(null)
 
       toast.success('Logged out successfully')
-      router.push('/')
-
-    } catch (error: any) {
-      console.error('Logout error:', error)
-      // Force logout even on error
-      AuthUtils.clearCache()
-      setUser(null)
       router.push('/')
     }
   }
 
   // Reset Password
   const resetPassword = async (email: string) => {
-    if (!auth) {
-      throw new Error('Authentication not configured. Please set up Firebase.')
-    }
-
     try {
-      await sendPasswordResetEmail(auth, email)
+      const response = await backendApi.auth.forgotPassword(email)
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to send reset email')
+      }
+
       toast.success('Password reset email sent!')
     } catch (error: any) {
       console.error('Reset password error:', error)
@@ -422,48 +258,36 @@ export const AuthProvider = ({
 
   // Update User Profile
   const updateUserProfile = async (displayName: string, photoURL?: string) => {
-    if (!auth) {
-      throw new Error('Authentication not configured. Please set up Firebase.')
-    }
-
     try {
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, {
-          displayName,
-          ...(photoURL && { photoURL }),
-        })
+      const response = await backendApi.user.updateProfile({
+        displayName,
+        ...(photoURL && { photoURL }),
+      })
 
-        // Update cached user
-        const cachedUser = AuthUtils.getCachedUser()
-        if (cachedUser) {
-          const updatedUser = { ...cachedUser, displayName, photoURL }
-          AuthUtils.cacheUser(updatedUser)
-          setUser(updatedUser)
-        }
-
-        toast.success('Profile updated!')
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update profile')
       }
+
+      // Update cached user
+      const cachedUser = AuthUtils.getCachedUser()
+      if (cachedUser) {
+        const updatedUser = { ...cachedUser, displayName, photoURL }
+        AuthUtils.cacheUser(updatedUser)
+        setUser(updatedUser)
+      }
+
+      toast.success('Profile updated!')
     } catch (error: any) {
       console.error('Update profile error:', error)
       throw new Error(error.message || 'Failed to update profile')
     }
   }
 
-  // Send Verification Email
+  // Send Verification Email (placeholder)
   const sendVerificationEmail = async () => {
-    if (!auth) {
-      throw new Error('Authentication not configured. Please set up Firebase.')
-    }
-
-    try {
-      if (auth.currentUser) {
-        await sendEmailVerification(auth.currentUser)
-        toast.success('Verification email sent!')
-      }
-    } catch (error: any) {
-      console.error('Send verification error:', error)
-      throw new Error(error.message || 'Failed to send verification email')
-    }
+    toast.error('Email verification not yet implemented with backend API')
+    // TODO: Implement with backend
+    throw new Error('Not implemented')
   }
 
   const value = {

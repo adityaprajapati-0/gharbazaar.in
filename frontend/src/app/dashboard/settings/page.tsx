@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { 
+import { useRouter } from 'next/navigation'
+import { useLocale } from '@/contexts/LocaleContext'
+import {
   Settings as SettingsIcon,
   Bell,
   Lock,
@@ -26,7 +28,10 @@ import {
 } from 'lucide-react'
 
 export default function SettingsPage() {
+  const router = useRouter()
+  const { language, currency, setLanguage, setCurrency } = useLocale()
   const [activeSection, setActiveSection] = useState('notifications')
+
   const [settings, setSettings] = useState({
     notifications: {
       email: true,
@@ -45,8 +50,6 @@ export default function SettingsPage() {
       activityStatus: true
     },
     preferences: {
-      language: 'en',
-      currency: 'INR',
       theme: 'system',
       emailFrequency: 'daily'
     }
@@ -70,6 +73,102 @@ export default function SettingsPage() {
     })
   }
 
+  // Open chatbot for support
+  const openChatbot = () => {
+    // Trigger chatbot - it should be available globally from SupportChatbot component
+    const chatbotButton = document.querySelector('[data-chatbot-trigger]') as HTMLButtonElement
+    if (chatbotButton) {
+      chatbotButton.click()
+    } else {
+      // Fallback: navigate to dashboard where chatbot is always available
+      router.push('/dashboard')
+      setTimeout(() => {
+        const btn = document.querySelector('[data-chatbot-trigger]') as HTMLButtonElement
+        btn?.click()
+      }, 500)
+    }
+  }
+
+  // Download user data as PDF
+  const handleDownloadData = async () => {
+    try {
+      // In a real implementation, this would fetch actual user data from the backend
+      // For now, we'll create a simple text file with user data structure
+      const userData = {
+        profile: {
+          name: 'User Name',
+          email: 'user@email.com',
+          phone: '+91 XXXXX XXXXX',
+          role: 'Buyer/Seller',
+          memberSince: new Date().toLocaleDateString()
+        },
+        properties: [],
+        messages: [],
+        transactions: [],
+        favorites: [],
+        searches: [],
+        supportTickets: [],
+        accountActivity: []
+      }
+
+      const dataText = `GHARBAZAAR USER DATA EXPORT
+Generated on: ${new Date().toLocaleString()}
+
+=== PROFILE INFORMATION ===
+Name: ${userData.profile.name}
+Email: ${userData.profile.email}
+Phone: ${userData.profile.phone}
+Role: ${userData.profile.role}
+Member Since: ${userData.profile.memberSince}
+
+=== PROPERTY LISTINGS ===
+Total Properties: ${userData.properties.length}
+[Property details would be listed here]
+
+=== MESSAGES ===
+Total Conversations: ${userData.messages.length}
+[Message history would be listed here]
+
+=== TRANSACTIONS ===
+Total Transactions: ${userData.transactions.length}
+[Transaction history would be listed here]
+
+=== FAVORITES ===
+Total Saved Properties: ${userData.favorites.length}
+[Favorited properties would be listed here]
+
+=== SEARCH HISTORY ===
+Total Searches: ${userData.searches.length}
+[Search history would be listed here]
+
+=== SUPPORT TICKETS ===
+Total Tickets: ${userData.supportTickets.length}
+[Support ticket history would be listed here]
+
+=== ACCOUNT ACTIVITY ===
+[Login history and account changes would be listed here]
+
+This file contains all data associated with your GharBazaar account.
+For questions, contact privacy@gharbazaar.in`
+
+      // Create and download the file
+      const blob = new Blob([dataText], { type: 'text/plain' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `gharbazaar-data-export-${new Date().getTime()}.txt`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      alert('Your data has been downloaded successfully!')
+    } catch (error) {
+      console.error('Error downloading data:', error)
+      alert('Failed to download data. Please try again.')
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -91,11 +190,10 @@ export default function SettingsPage() {
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all mb-1 ${
-                  activeSection === section.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all mb-1 ${activeSection === section.id
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
               >
                 <div className="flex items-center space-x-3">
                   <section.icon size={20} />
@@ -140,17 +238,15 @@ export default function SettingsPage() {
                         </div>
                         <button
                           onClick={() => toggleNotification(channel.key)}
-                          className={`relative w-12 h-6 rounded-full transition-all ${
-                            settings.notifications[channel.key as keyof typeof settings.notifications]
-                              ? 'bg-blue-600'
-                              : 'bg-gray-300 dark:bg-gray-600'
-                          }`}
+                          className={`relative w-12 h-6 rounded-full transition-all ${settings.notifications[channel.key as keyof typeof settings.notifications]
+                            ? 'bg-blue-600'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
                         >
-                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                            settings.notifications[channel.key as keyof typeof settings.notifications]
-                              ? 'translate-x-6'
-                              : 'translate-x-0'
-                          }`} />
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.notifications[channel.key as keyof typeof settings.notifications]
+                            ? 'translate-x-6'
+                            : 'translate-x-0'
+                            }`} />
                         </button>
                       </div>
                     ))}
@@ -177,17 +273,15 @@ export default function SettingsPage() {
                         </div>
                         <button
                           onClick={() => toggleNotification(type.key)}
-                          className={`ml-4 relative w-12 h-6 rounded-full transition-all ${
-                            settings.notifications[type.key as keyof typeof settings.notifications]
-                              ? 'bg-green-600'
-                              : 'bg-gray-300 dark:bg-gray-600'
-                          }`}
+                          className={`ml-4 relative w-12 h-6 rounded-full transition-all ${settings.notifications[type.key as keyof typeof settings.notifications]
+                            ? 'bg-green-600'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
                         >
-                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                            settings.notifications[type.key as keyof typeof settings.notifications]
-                              ? 'translate-x-6'
-                              : 'translate-x-0'
-                          }`} />
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.notifications[type.key as keyof typeof settings.notifications]
+                            ? 'translate-x-6'
+                            : 'translate-x-0'
+                            }`} />
                         </button>
                       </div>
                     ))}
@@ -240,13 +334,11 @@ export default function SettingsPage() {
                           ...settings,
                           privacy: { ...settings.privacy, showEmail: !settings.privacy.showEmail }
                         })}
-                        className={`relative w-12 h-6 rounded-full transition-all ${
-                          settings.privacy.showEmail ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                        }`}
+                        className={`relative w-12 h-6 rounded-full transition-all ${settings.privacy.showEmail ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                          }`}
                       >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          settings.privacy.showEmail ? 'translate-x-6' : 'translate-x-0'
-                        }`} />
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.privacy.showEmail ? 'translate-x-6' : 'translate-x-0'
+                          }`} />
                       </button>
                     </div>
                     <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -259,13 +351,11 @@ export default function SettingsPage() {
                           ...settings,
                           privacy: { ...settings.privacy, showPhone: !settings.privacy.showPhone }
                         })}
-                        className={`relative w-12 h-6 rounded-full transition-all ${
-                          settings.privacy.showPhone ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                        }`}
+                        className={`relative w-12 h-6 rounded-full transition-all ${settings.privacy.showPhone ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                          }`}
                       >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          settings.privacy.showPhone ? 'translate-x-6' : 'translate-x-0'
-                        }`} />
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.privacy.showPhone ? 'translate-x-6' : 'translate-x-0'
+                          }`} />
                       </button>
                     </div>
                   </div>
@@ -291,7 +381,10 @@ export default function SettingsPage() {
                       </div>
                       <ChevronRight size={20} className="text-gray-400" />
                     </button>
-                    <button className="w-full flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                    <button
+                      onClick={handleDownloadData}
+                      className="w-full flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                    >
                       <div className="flex items-center space-x-3">
                         <Download size={20} className="text-purple-600" />
                         <span className="text-gray-900 dark:text-white font-medium">Download My Data</span>
@@ -337,11 +430,8 @@ export default function SettingsPage() {
                     Language
                   </label>
                   <select
-                    value={settings.preferences.language}
-                    onChange={(e) => setSettings({
-                      ...settings,
-                      preferences: { ...settings.preferences, language: e.target.value }
-                    })}
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value as any)}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="en">English</option>
@@ -349,6 +439,9 @@ export default function SettingsPage() {
                     <option value="mr">मराठी (Marathi)</option>
                     <option value="ta">தமிழ் (Tamil)</option>
                   </select>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Changes will apply across the entire website
+                  </p>
                 </div>
 
                 <div>
@@ -356,17 +449,17 @@ export default function SettingsPage() {
                     Currency
                   </label>
                   <select
-                    value={settings.preferences.currency}
-                    onChange={(e) => setSettings({
-                      ...settings,
-                      preferences: { ...settings.preferences, currency: e.target.value }
-                    })}
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as any)}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="INR">₹ INR - Indian Rupee</option>
-                    <option value="USD">$ USD - US Dollar</option>
-                    <option value="EUR">€ EUR - Euro</option>
+                    <option value="INR">₹ INR - Indian Rupee (Crores/Lakhs)</option>
+                    <option value="USD">$ USD - US Dollar (Million)</option>
+                    <option value="GBP">£ GBP - British Pound (Million)</option>
                   </select>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    All prices will be converted throughout the website
+                  </p>
                 </div>
 
                 <div>
@@ -385,11 +478,10 @@ export default function SettingsPage() {
                           ...settings,
                           preferences: { ...settings.preferences, theme: theme.value }
                         })}
-                        className={`p-4 border-2 rounded-lg transition-all ${
-                          settings.preferences.theme === theme.value
-                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                        }`}
+                        className={`p-4 border-2 rounded-lg transition-all ${settings.preferences.theme === theme.value
+                          ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
                       >
                         <theme.icon size={24} className="mx-auto mb-2 text-gray-700 dark:text-gray-300" />
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{theme.label}</p>
@@ -448,14 +540,20 @@ export default function SettingsPage() {
                 Help & Support
               </h2>
               <div className="space-y-3">
-                <button className="w-full flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                <button
+                  onClick={() => router.push('/dashboard/help')}
+                  className="w-full flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                >
                   <div className="flex items-center space-x-3">
                     <HelpCircle size={20} className="text-blue-600" />
                     <span className="text-gray-900 dark:text-white font-medium">Help Center</span>
                   </div>
                   <ChevronRight size={20} className="text-gray-400" />
                 </button>
-                <button className="w-full flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                <button
+                  onClick={openChatbot}
+                  className="w-full flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                >
                   <div className="flex items-center space-x-3">
                     <MessageCircle size={20} className="text-green-600" />
                     <span className="text-gray-900 dark:text-white font-medium">Contact Support</span>

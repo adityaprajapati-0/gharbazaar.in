@@ -1,5 +1,4 @@
 // Error handling utilities for the entire application
-import { FirebaseError } from 'firebase/app'
 
 export class AppError extends Error {
     constructor(
@@ -24,9 +23,10 @@ export interface ErrorLog {
 }
 
 /**
- * Parse Firebase errors into user-friendly messages
+ * Parse backend API errors into user-friendly messages
+ * (Previously parseFirebaseError - updated for backend API)
  */
-export function parseFirebaseError(error: FirebaseError): { message: string; code: string } {
+export function parseApiError(error: any): { message: string; code: string } {
     const errorMap: Record<string, string> = {
         'auth/user-not-found': 'No account found with this email',
         'auth/wrong-password': 'Incorrect password',
@@ -47,9 +47,10 @@ export function parseFirebaseError(error: FirebaseError): { message: string; cod
         'unauthenticated': 'Please log in to continue',
     }
 
+    const code = error?.code || error?.error?.code || 'unknown'
     return {
-        message: errorMap[error.code] || error.message || 'An unexpected error occurred',
-        code: error.code
+        message: errorMap[code] || error?.message || 'An unexpected error occurred',
+        code
     }
 }
 
@@ -104,8 +105,9 @@ export async function handleError(
     if (error instanceof AppError) {
         errorMessage = error.message
         errorCode = error.code
-    } else if (error instanceof FirebaseError) {
-        const parsed = parseFirebaseError(error)
+    } else if (error && typeof error === 'object' && 'code' in error) {
+        // Handle API errors (including former Firebase errors)
+        const parsed = parseApiError(error)
         errorMessage = parsed.message
         errorCode = parsed.code
     } else if (error instanceof Error) {

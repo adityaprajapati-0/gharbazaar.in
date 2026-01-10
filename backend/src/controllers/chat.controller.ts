@@ -1,424 +1,330 @@
-import { Request, Response, NextFunction } from 'express';
-import { getFirestore } from '../config/firebase';
-import { AppError } from '../middleware/errorHandler';
+/**
+ * 💬 CHAT REST API CONTROLLER
+ * 
+ * AJAX endpoints for chat functionality.
+ * These serve as fallback/complement to Socket.IO real-time chat.
+ * 
+ * Used for:
+ * - Fetching conversation history
+ * - Loading old messages
+ * - Creating new conversations
+ * - File uploads
+ * 
+ * @author GharBazaar Backend Team
+ */
 
-export class ChatController {
-    /**
-     * Get or create conversation between two users
-     */
-    async getOrCreateConversation(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { otherUserId, type, propertyId } = req.body;
-            const userId = req.user?.uid;
+import { Request, Response } from 'express';
+import Conversation from '../models/conversation.model';
+import Message from '../models/message.model';
+import { isMongoDBAvailable, memoryConversations, memoryMessages } from '../utils/memoryStore';
+import { v4 as uuidv4 } from 'uuid';
 
-            if (!userId) {
-                throw new AppError(401, 'Unauthorized');
-            }
+/**
+ * 📋 GET ALL CONVERSATIONS
+ * 
+ * Fetch all conversations for the authenticated user.
+ * Returns list of conversations sorted by most recent activity.
+ * 
+ * GET /api/v1/chat/conversations
+ */
+export const getConversations = async (req: Request, res: Response) => {
+    try {
+        // User ID comes from auth middleware
+        const userId = (req as any).user.userId;
 
-            const db = getFirestore();
-
-            // Check if conversation already exists
-            const existingConv = await db.collection('conversations')
-                .where('participants', 'array-contains', userId)
-                .get();
-
-            let conversation = null;
-
-            for (const doc of existingConv.docs) {
-                const data = doc.data();
-                if (data.participants.includes(otherUserId)) {
-                    conversation = { id: doc.id, ...data };
-                    break;
-                }
-            }
-
-            // Create new conversation if doesn't exist
-            if (!conversation) {
-                const conversationData = {
-                    participants: [userId, otherUserId],
-                    type: type || 'chat', // 'buyer-seller', 'buyer-employee', 'seller-employee'
-                    propertyId: propertyId || null,
-                    lastMessage: '',
-                    lastMessageAt: new Date().toISOString(),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                };
-
-                const convRef = await db.collection('conversations').add(conversationData);
-                conversation = { id: convRef.id, ...conversationData };
-            }
-
-            res.json({
-                success: true,
-                data: { conversation },
-            });
-        } catch (error) {
-            next(error);
+        let conversations = [];
+        if (isMongoDBAvailable()) {
+            // Find all conversations where user is a participant
+            conversations = await Conversation.find({
+                participants: userId
+            })
+                .sort({ lastMessageAt: -1 })  // Most recent first
+                .limit(50);  // Limit to last 50 conversations
+        } else {
+            // In-memory fetching
+            conversations = Array.from(memoryConversations.values())
+                .filter((c: any) => c.participants.includes(userId))
+                .sort((a: any, b: any) => b.lastMessageAt - a.lastMessageAt)
+                .slice(0, 50);
         }
+
+        console.log(`📋 Fetched ${conversations.length} conversations for user ${userId}${!isMongoDBAvailable() ? ' (Memory Mode)' : ''}`);
+
+        res.json({
+            success: true,
+            data: { conversations }
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching conversations:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch conversations'
+        });
     }
+};
 
-    /**
-     * Get all conversations for current user
-     */
-    async getUserConversations(req: Request, res: Response, next: NextFunction) {
-        try {
-            const userId = req.user?.uid;
+/**
+ * 💬 GET CONVERSATION MESSAGES
+ * 
+ * Fetch all messages in a specific conversation.
+ * Supports pagination for long conversations.
+ * 
+ * GET /api/v1/chat/conversations/:id/messages?limit=50&skip=0
+ */
+export const getMessages = async (req: Request, res: Response) => {
+    try {
+        const { id: conversationId } = req.params;
+        const limit = parseInt(req.query.limit as string) || 50;
+        const skip = parseInt(req.query.skip as string) || 0;
+        const userId = (req as any).user.userId;
 
-            if (!userId) {
-                throw new AppError(401, 'Unauthorized');
-            }
+        // Verify user is part of this conversation
+        let conversation;
+        if (isMongoDBAvailable()) {
+            conversation = await Conversation.findById(conversationId);
+        } else {
+            conversation = memoryConversations.get(conversationId);
+        }
 
-            const db = getFirestore();
+        if (!conversation) {
+            return res.status(404).json({
+                success: false,
+                error: 'Conversation not found'
+            });
+        }
 
-            const snapshot = await db.collection('conversations')
-                .where('participants', 'array-contains', userId)
-                .orderBy('lastMessageAt', 'desc')
-                .limit(50)
-                .get();
+        if (!conversation.participants.includes(userId)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized to view this conversation'
+            });
+        }
 
-            const conversations = await Promise.all(
-                snapshot.docs.map(async (doc: any) => {
-                    const data = doc.data();
-                    const otherUserId = data.participants.find((p: string) => p !== userId);
+        // Fetch messages with pagination
+        let messages = [];
+        if (isMongoDBAvailable()) {
+            messages = await Message.find({
+                conversationId,
+                deleted: false  // Don't include deleted messages
+            })
+                .sort({ createdAt: 1 })  // Oldest first (chronological order)
+                .skip(skip)
+                .limit(limit);
+        } else {
+            // In-memory fetching
+            messages = (memoryMessages.get(conversationId) || [])
+                .filter((m: any) => !m.deleted)
+                .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                .slice(skip, skip + limit);
+        }
 
-                    // Get other user details
-                    const otherUserDoc = await db.collection('users').doc(otherUserId).get();
-                    const otherUser = otherUserDoc.data();
+        console.log(`💬 Fetched ${messages.length} messages from conversation ${conversationId}${!isMongoDBAvailable() ? ' (Memory Mode)' : ''}`);
 
-                    // Get unread count
-                    const unreadSnapshot = await db.collection('messages')
-                        .where('conversationId', '==', doc.id)
-                        .where('senderId', '!=', userId)
-                        .where('read', '==', false)
-                        .get();
+        res.json({
+            success: true,
+            data: { messages }
+        });
 
-                    return {
-                        id: doc.id,
-                        ...data,
-                        otherUser: {
-                            id: otherUserId,
-                            name: otherUser?.displayName || otherUser?.email || 'Unknown',
-                            email: otherUser?.email,
-                            avatar: otherUser?.photoURL,
-                            onlineStatus: otherUser?.onlineStatus || 'offline',
-                        },
-                        unreadCount: unreadSnapshot.size,
-                    };
-                })
+    } catch (error) {
+        console.error('❌ Error fetching messages:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch messages'
+        });
+    }
+};
+
+/**
+ * ➕ CREATE CONVERSATION
+ * 
+ * Create a new conversation (e.g., buyer contacting seller about property).
+ * 
+ * POST /api/v1/chat/conversations
+ * Body: { otherUserId, propertyId, propertyTitle, initialMessage }
+ */
+export const createConversation = async (req: Request, res: Response) => {
+    try {
+        const { otherUserId, propertyId, propertyTitle, initialMessage } = req.body;
+        const userId = (req as any).user.userId;
+        const userEmail = (req as any).user.email;
+
+        // Check if conversation already exists between these users for this property
+        let conversation;
+        if (isMongoDBAvailable()) {
+            conversation = await Conversation.findOne({
+                participants: { $all: [userId, otherUserId] },
+                propertyId
+            });
+        } else {
+            conversation = Array.from(memoryConversations.values()).find((c: any) =>
+                c.participants.includes(userId) &&
+                c.participants.includes(otherUserId) &&
+                c.propertyId === propertyId
             );
-
-            res.json({
-                success: true,
-                data: { conversations },
-            });
-        } catch (error) {
-            next(error);
         }
-    }
 
-    /**
-     * Get messages for a conversation
-     */
-    async getMessages(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { conversationId } = req.params;
-            const { limit = '50', before } = req.query;
-            const userId = req.user?.uid;
-
-            if (!userId) {
-                throw new AppError(401, 'Unauthorized');
+        // If conversation doesn't exist, create it
+        if (!conversation) {
+            if (isMongoDBAvailable()) {
+                conversation = await Conversation.create({
+                    participants: [userId, otherUserId],
+                    propertyId,
+                    propertyTitle,
+                    lastMessage: initialMessage || '',
+                    lastMessageAt: new Date(),
+                });
+            } else {
+                const conversationId = uuidv4();
+                conversation = {
+                    _id: conversationId,
+                    participants: [userId, otherUserId],
+                    propertyId,
+                    propertyTitle,
+                    lastMessage: initialMessage || '',
+                    lastMessageAt: new Date(),
+                };
+                memoryConversations.set(conversationId, conversation);
             }
 
-            const db = getFirestore();
+            console.log(`✅ New conversation created: ${isMongoDBAvailable() ? conversation._id : conversation._id}${!isMongoDBAvailable() ? ' (Memory Mode)' : ''}`);
+        }
 
-            // Verify user is participant
-            const convDoc = await db.collection('conversations').doc(conversationId).get();
-            if (!convDoc.exists) {
-                throw new AppError(404, 'Conversation not found');
-            }
-
-            const convData = convDoc.data();
-            if (!convData?.participants.includes(userId)) {
-                throw new AppError(403, 'Unauthorized access to conversation');
-            }
-
-            // Build query
-            let query = db.collection('messages')
-                .where('conversationId', '==', conversationId)
-                .orderBy('createdAt', 'desc')
-                .limit(parseInt(limit as string));
-
-            // Pagination
-            if (before) {
-                const beforeDoc = await db.collection('messages').doc(before as string).get();
-                if (beforeDoc.exists) {
-                    query = query.startAfter(beforeDoc);
+        // If there's an initial message, save it
+        if (initialMessage) {
+            if (isMongoDBAvailable()) {
+                await Message.create({
+                    conversationId: conversation._id,
+                    senderId: userId,
+                    senderEmail: userEmail,
+                    content: initialMessage,
+                    type: 'text',
+                    read: false,
+                });
+            } else {
+                const messageId = uuidv4();
+                const createdAt = new Date();
+                const message = {
+                    _id: messageId,
+                    conversationId: conversation._id,
+                    senderId: userId,
+                    senderEmail: userEmail,
+                    content: initialMessage,
+                    type: 'text',
+                    read: false,
+                    createdAt: createdAt.toISOString()
+                };
+                if (!memoryMessages.has(conversation._id)) {
+                    memoryMessages.set(conversation._id, []);
                 }
+                memoryMessages.get(conversation._id).push(message);
             }
-
-            const snapshot = await query.get();
-            const messages = snapshot.docs.map((doc: any) => ({
-                id: doc.id,
-                ...doc.data(),
-            })).reverse(); // Reverse to show oldest first
-
-            res.json({
-                success: true,
-                data: { messages },
-            });
-        } catch (error) {
-            next(error);
         }
+
+        res.status(201).json({
+            success: true,
+            data: { conversation }
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating conversation:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create conversation'
+        });
     }
+};
 
-    /**
-     * Send a message (also handled via Socket.IO)
-     */
-    async sendMessage(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { conversationId } = req.params;
-            const { content, type = 'text' } = req.body;
-            const userId = req.user?.uid;
-            const userEmail = req.user?.email;
+/**
+ * 📨 SEND MESSAGE (AJAX Fallback)
+ * 
+ * Send a message via REST API instead of Socket.IO.
+ * Useful when socket connection is unavailable.
+ * 
+ * POST /api/v1/chat/conversations/:id/messages
+ * Body: { content, type }
+ */
+export const sendMessage = async (req: Request, res: Response) => {
+    try {
+        const { id: conversationId } = req.params;
+        const { content, type = 'text' } = req.body;
+        const userId = (req as any).user.userId;
+        const userEmail = (req as any).user.email;
 
-            if (!userId) {
-                throw new AppError(401, 'Unauthorized');
-            }
+        // Verify conversation exists and user is participant
+        let conversation;
+        if (isMongoDBAvailable()) {
+            conversation = await Conversation.findById(conversationId);
+        } else {
+            conversation = memoryConversations.get(conversationId);
+        }
 
-            const db = getFirestore();
+        if (!conversation) {
+            return res.status(404).json({
+                success: false,
+                error: 'Conversation not found'
+            });
+        }
 
-            // Verify conversation exists and user is participant
-            const convDoc = await db.collection('conversations').doc(conversationId).get();
-            if (!convDoc.exists) {
-                throw new AppError(404, 'Conversation not found');
-            }
+        if (!conversation.participants.includes(userId)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized'
+            });
+        }
 
-            const convData = convDoc.data();
-            if (!convData?.participants.includes(userId)) {
-                throw new AppError(403, 'Unauthorized');
-            }
-
-            // Create message
-            const messageData = {
+        let message;
+        if (isMongoDBAvailable()) {
+            // Create the message
+            message = await Message.create({
                 conversationId,
                 senderId: userId,
                 senderEmail: userEmail,
                 content,
                 type,
                 read: false,
-                createdAt: new Date().toISOString(),
-            };
-
-            const messageRef = await db.collection('messages').add(messageData);
+            });
 
             // Update conversation
-            await db.collection('conversations').doc(conversationId).update({
-                lastMessage: content,
-                lastMessageAt: messageData.createdAt,
-                updatedAt: messageData.createdAt,
+            await Conversation.findByIdAndUpdate(conversationId, {
+                lastMessage: content.substring(0, 100),
+                lastMessageAt: new Date(),
             });
-
-            const message = { id: messageRef.id, ...messageData };
-
-            res.json({
-                success: true,
-                data: { message },
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    /**
-     * Delete conversation
-     */
-    async deleteConversation(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { conversationId } = req.params;
-            const userId = req.user?.uid;
-
-            if (!userId) {
-                throw new AppError(401, 'Unauthorized');
-            }
-
-            const db = getFirestore();
-
-            // Verify user is participant
-            const convDoc = await db.collection('conversations').doc(conversationId).get();
-            if (!convDoc.exists) {
-                throw new AppError(404, 'Conversation not found');
-            }
-
-            const convData = convDoc.data();
-            if (!convData?.participants.includes(userId)) {
-                throw new AppError(403, 'Unauthorized');
-            }
-
-            // Delete all messages
-            const messagesSnapshot = await db.collection('messages')
-                .where('conversationId', '==', conversationId)
-                .get();
-
-            const batch = db.batch();
-            messagesSnapshot.docs.forEach((doc) => {
-                batch.delete(doc.ref);
-            });
-
-            // Delete conversation
-            batch.delete(convDoc.ref);
-            await batch.commit();
-
-            res.json({
-                success: true,
-                message: 'Conversation deleted',
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    /**
-     * Upload file attachment
-     */
-    async uploadAttachment(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { conversationId } = req.body;
-            const userId = req.user?.uid;
-            const file = req.file;
-
-            if (!userId) {
-                throw new AppError(401, 'Unauthorized');
-            }
-
-            if (!file) {
-                throw new AppError(400, 'No file provided');
-            }
-
-            const db = getFirestore();
-
-            // Verify user is participant
-            const convDoc = await db.collection('conversations').doc(conversationId).get();
-            if (!convDoc.exists) {
-                throw new AppError(404, 'Conversation not found');
-            }
-
-            const convData = convDoc.data();
-            if (!convData?.participants.includes(userId)) {
-                throw new AppError(403, 'Unauthorized');
-            }
-
-            // Upload file using file upload service
-            const { fileUploadService } = await import('../services/file-upload.service');
-            fileUploadService.validateFile(file);
-            const uploadResult = await fileUploadService.uploadFile(file, userId, conversationId);
-
-            res.json({
-                success: true,
-                data: uploadResult,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    /**
-     * Edit message
-     */
-    async editMessage(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { messageId } = req.params;
-            const { content } = req.body;
-            const userId = req.user?.uid;
-
-            if (!userId) {
-                throw new AppError(401, 'Unauthorized');
-            }
-
-            if (!content || content.length > 5000) {
-                throw new AppError(400, 'Invalid message content');
-            }
-
-            const db = getFirestore();
-
-            // Get message
-            const messageDoc = await db.collection('messages').doc(messageId).get();
-            if (!messageDoc.exists) {
-                throw new AppError(404, 'Message not found');
-            }
-
-            const messageData = messageDoc.data();
-
-            // Verify user is sender
-            if (messageData?.senderId !== userId) {
-                throw new AppError(403, 'Can only edit your own messages');
-            }
-
-            // Update message
-            await messageDoc.ref.update({
+        } else {
+            // In-memory message
+            const messageId = uuidv4();
+            const createdAt = new Date();
+            message = {
+                _id: messageId,
+                conversationId,
+                senderId: userId,
+                senderEmail: userEmail,
                 content,
-                edited: true,
-                editedAt: new Date().toISOString(),
-            });
-
-            const updatedMessage = {
-                id: messageId,
-                ...messageData,
-                content,
-                edited: true,
-                editedAt: new Date().toISOString(),
+                type,
+                read: false,
+                createdAt: createdAt.toISOString()
             };
 
-            res.json({
-                success: true,
-                data: { message: updatedMessage },
-            });
-        } catch (error) {
-            next(error);
+            if (!memoryMessages.has(conversationId)) {
+                memoryMessages.set(conversationId, []);
+            }
+            memoryMessages.get(conversationId).push(message);
+
+            // Update conversation in memory
+            conversation.lastMessage = content.substring(0, 100);
+            conversation.lastMessageAt = createdAt;
         }
+
+        res.status(201).json({
+            success: true,
+            data: { message }
+        });
+
+    } catch (error) {
+        console.error('❌ Error sending message:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to send message'
+        });
     }
-
-    /**
-     * Delete message
-     */
-    async deleteMessage(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { messageId } = req.params;
-            const userId = req.user?.uid;
-
-            if (!userId) {
-                throw new AppError(401, 'Unauthorized');
-            }
-
-            const db = getFirestore();
-
-            // Get message
-            const messageDoc = await db.collection('messages').doc(messageId).get();
-            if (!messageDoc.exists) {
-                throw new AppError(404, 'Message not found');
-            }
-
-            const messageData = messageDoc.data();
-
-            // Verify user is sender
-            if (messageData?.senderId !== userId) {
-                throw new AppError(403, 'Can only delete your own messages');
-            }
-
-            // Soft delete - update message to show as deleted
-            await messageDoc.ref.update({
-                content: '[Message deleted]',
-                deleted: true,
-                deletedAt: new Date().toISOString(),
-            });
-
-            res.json({
-                success: true,
-                message: 'Message deleted',
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-}
-
-export const chatController = new ChatController();
+};

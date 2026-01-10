@@ -1,124 +1,75 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
-// Load environment variables
 dotenv.config();
 
 interface Config {
-    nodeEnv: string;
     port: number;
-    apiVersion: string;
+    nodeEnv: string;
+    jwtSecret: string;
+    jwtExpiresIn: string;
+    mongodbUri: string;
     frontendUrl: string;
-    firebase: {
-        projectId: string;
-        privateKeyId: string;
-        privateKey: string;
-        clientEmail: string;
-        clientId: string;
+    allowedOrigins: string[];
+    socket: {
+        pingTimeout: number;
+        pingInterval: number;
+        reconnectionAttempts: number;
     };
-    jwt: {
-        secret: string;
-        expiresIn: string;
-        refreshSecret: string;
-        refreshExpiresIn: string;
-    };
-    razorpay: {
-        keyId: string;
-        keySecret: string;
-        webhookSecret: string;
-    };
-    sendgrid: {
-        apiKey: string;
-        fromEmail: string;
-        fromName: string;
-    };
-    twilio: {
-        accountSid: string;
-        authToken: string;
-        phoneNumber: string;
-    };
-    redis: {
-        host: string;
-        port: number;
-        password?: string;
+    upload: {
+        maxFileSize: number;
+        uploadDir: string;
     };
     rateLimit: {
+        max: number;
         windowMs: number;
-        maxRequests: number;
     };
-    fileUpload: {
-        maxFileSize: number;
-        allowedTypes: string[];
-    };
+    logLevel: string;
 }
 
-export const config: Config = {
-    nodeEnv: process.env.NODE_ENV || 'development',
+const config: Config = {
     port: parseInt(process.env.PORT || '5000', 10),
-    apiVersion: process.env.API_VERSION || 'v1',
+    nodeEnv: process.env.NODE_ENV || 'development',
+    jwtSecret: process.env.JWT_SECRET || 'change_this_secret_key_in_production',
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/gharbazaar',
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-
-    firebase: {
-        projectId: process.env.FIREBASE_PROJECT_ID || '',
-        privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID || '',
-        privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
-        clientId: process.env.FIREBASE_CLIENT_ID || '',
+    allowedOrigins: (process.env.FRONTEND_URL || 'http://localhost:3000')
+        .split(',')
+        .map(url => url.trim()),
+    socket: {
+        pingTimeout: parseInt(process.env.SOCKET_PING_TIMEOUT || '60000', 10),
+        pingInterval: parseInt(process.env.SOCKET_PING_INTERVAL || '25000', 10),
+        reconnectionAttempts: parseInt(process.env.SOCKET_RECONNECTION_ATTEMPTS || '5', 10),
     },
-
-    jwt: {
-        secret: process.env.JWT_SECRET || 'your-secret-key',
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-        refreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret',
-        refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+    upload: {
+        maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10),
+        uploadDir: process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads'),
     },
-
-    razorpay: {
-        keyId: process.env.RAZORPAY_KEY_ID || '',
-        keySecret: process.env.RAZORPAY_KEY_SECRET || '',
-        webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
-    },
-
-    sendgrid: {
-        apiKey: process.env.SENDGRID_API_KEY || '',
-        fromEmail: process.env.SENDGRID_FROM_EMAIL || 'noreply@gharbazaar.in',
-        fromName: process.env.SENDGRID_FROM_NAME || 'GharBazaar',
-    },
-
-    twilio: {
-        accountSid: process.env.TWILIO_ACCOUNT_SID || '',
-        authToken: process.env.TWILIO_AUTH_TOKEN || '',
-        phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
-    },
-
-    redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
-        password: process.env.REDIS_PASSWORD,
-    },
-
     rateLimit: {
-        windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
-        maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+        max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
+        windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10) * 60 * 1000,
     },
-
-    fileUpload: {
-        maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10),
-        allowedTypes: (process.env.ALLOWED_FILE_TYPES || 'image/jpeg,image/png,image/webp,application/pdf').split(','),
-    },
+    logLevel: process.env.LOG_LEVEL || 'info',
 };
 
-// Validate required environment variables
-const requiredEnvVars = [
-    'FIREBASE_PROJECT_ID',
-    'FIREBASE_PRIVATE_KEY',
-    'FIREBASE_CLIENT_EMAIL',
-    'JWT_SECRET',
-];
+export const validateConfig = (): void => {
+    const requiredVars = ['JWT_SECRET', 'MONGODB_URI'];
+    const missing = requiredVars.filter(varName => !process.env[varName]);
 
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+    if (missing.length > 0) {
+        console.error('❌ Missing required environment variables:', missing.join(', '));
+        console.error('💡 Please check your .env file');
+        process.exit(1);
+    }
 
-if (missingEnvVars.length > 0 && process.env.NODE_ENV !== 'test') {
-    throw new Error(
-        `Missing required environment variables: ${missingEnvVars.join(', ')}`
-    );
-}
+    if (config.nodeEnv === 'production' && config.jwtSecret === 'change_this_secret_key_in_production') {
+        console.error('❌ SECURITY WARNING: Using default JWT secret in production!');
+        console.error('💡 Please set a strong JWT_SECRET in your environment variables');
+        process.exit(1);
+    }
+
+    console.log('✅ Configuration validated successfully');
+};
+
+export default config;

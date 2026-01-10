@@ -1,20 +1,15 @@
-import { Router } from 'express';
-import { EmployeeController } from '../controllers/employee.controller';
-import { authenticate, authorize } from '../middleware/auth';
+import express from 'express';
+import * as employeeController from '../controllers/employee.controller';
+import { authenticateToken } from '../middleware/auth';
 
-const router = Router();
-const employeeController = new EmployeeController();
+const router = express.Router();
 
-router.use(authenticate);
-router.use(authorize('employee'));
+router.use(authenticateToken);
 
-router.post('/apply', employeeController.submitApplication);
-router.get('/leads', employeeController.getLeads);
-router.put('/leads/:id', employeeController.updateLead);
-router.get('/verification', employeeController.getVerificationRequests);
-router.put('/verification/:id', employeeController.processVerification);
-router.get('/support', employeeController.getSupportTickets);
-router.post('/support', employeeController.createSupportTicket);
-router.put('/support/:id', employeeController.updateSupportTicket);
+router.get('/tickets', employeeController.getTickets);
+router.get('/active-conversations', employeeController.getActiveConversations);
+router.post('/quick-response', employeeController.sendQuickResponse);
+router.get('/user-history/:userId', employeeController.getUserHistory);
+router.get('/stats', employeeController.getEmployeeStats);
 
 export default router;

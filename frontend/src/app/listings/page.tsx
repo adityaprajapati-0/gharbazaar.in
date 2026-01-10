@@ -30,8 +30,8 @@ export default function ListingsPage() {
       if (filters.maxPrice) params.maxPrice = filters.maxPrice
       if (filters.city) params.city = filters.city
 
-      const response = await listingsAPI.getAll(params)
-      setListings(response.data)
+      const response = await listingsAPI.search(params)
+      setListings(response.data || response.properties || [])
     } catch (error) {
       console.error('Failed to fetch listings:', error)
     } finally {

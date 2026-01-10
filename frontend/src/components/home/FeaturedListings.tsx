@@ -12,8 +12,8 @@ export function FeaturedListings() {
   useEffect(() => {
     const fetchListings = async () => {
       try {
-        const response = await listingsAPI.getAll({ limit: 6 })
-        setListings(response.data)
+        const response = await listingsAPI.search({ limit: 6 })
+        setListings(response.data || response.properties || [])
       } catch (error) {
         console.error('Failed to fetch listings:', error)
       } finally {

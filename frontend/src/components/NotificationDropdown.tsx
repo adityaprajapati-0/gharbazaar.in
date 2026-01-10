@@ -3,7 +3,24 @@
 import { useState, useEffect, useRef } from 'react'
 import { Bell, X, Check, CheckCheck, Trash2 } from 'lucide-react'
 import { useNotifications } from '@/contexts/NotificationContext'
-import { formatDistanceToNow } from 'date-fns'
+
+// Simple date formatting utility
+function formatDistanceToNow(date: Date): string {
+    const now = new Date()
+    const diffInMs = now.getTime() - date.getTime()
+    const diffInMins = Math.floor(diffInMs / (1000 * 60))
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+
+    if (diffInMins < 1) return 'just now'
+    if (diffInMins === 1) return '1 minute ago'
+    if (diffInMins < 60) return `${diffInMins} minutes ago`
+    if (diffInHours === 1) return '1 hour ago'
+    if (diffInHours < 24) return `${diffInHours} hours ago`
+    if (diffInDays === 1) return '1 day ago'
+    if (diffInDays < 30) return `${diffInDays} days ago`
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date)
+}
 
 export default function NotificationDropdown() {
     const [isOpen, setIsOpen] = useState(false)
@@ -161,7 +178,7 @@ export default function NotificationDropdown() {
                                                     {notification.message}
                                                 </p>
                                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                                                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                                                    {formatDistanceToNow(new Date(notification.createdAt))}
                                                 </p>
                                             </div>
                                         </div>

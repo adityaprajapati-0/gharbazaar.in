@@ -76,7 +76,7 @@ export default function EmployeeTicketsPage() {
             const queryParam = filter === 'all' ? '?all=true' : filter === 'open' ? '?status=open' : '';
             const response = await fetch(`/api/v1/tickets/employee/all${queryParam}`, {
                 headers: {
-                    'Authorization': `Bearer ${await user?.getIdToken()}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
 
@@ -95,7 +95,7 @@ export default function EmployeeTicketsPage() {
         try {
             const response = await fetch(`/api/v1/tickets/${ticketId}`, {
                 headers: {
-                    'Authorization': `Bearer ${await user?.getIdToken()}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
 
@@ -123,7 +123,7 @@ export default function EmployeeTicketsPage() {
             const response = await fetch(`/api/v1/tickets/${ticketId}/assign`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${await user?.getIdToken()}`,
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -150,7 +150,7 @@ export default function EmployeeTicketsPage() {
             const response = await fetch(`/api/v1/tickets/${selectedTicket.id}/messages`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${await user?.getIdToken()}`,
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ message: inputMessage })
@@ -173,7 +173,7 @@ export default function EmployeeTicketsPage() {
             const response = await fetch(`/api/v1/tickets/${selectedTicket.id}/close`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${await user?.getIdToken()}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
 
@@ -212,8 +212,8 @@ export default function EmployeeTicketsPage() {
                                         key={tab}
                                         onClick={() => setFilter(tab as any)}
                                         className={`flex-1 px-4 py-3 text-sm font-medium capitalize ${filter === tab
-                                                ? 'border-b-2 border-purple-500 text-purple-600 dark:text-purple-400'
-                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                                            ? 'border-b-2 border-purple-500 text-purple-600 dark:text-purple-400'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                                             }`}
                                     >
                                         {tab}
@@ -241,8 +241,8 @@ export default function EmployeeTicketsPage() {
                                                 {ticket.categoryTitle}
                                             </h3>
                                             <span className={`text-xs px-2 py-1 rounded-full ${ticket.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
-                                                    ticket.status === 'assigned' || ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-green-100 text-green-800'
+                                                ticket.status === 'assigned' || ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-green-100 text-green-800'
                                                 }`}>
                                                 {ticket.status}
                                             </span>
@@ -309,8 +309,8 @@ export default function EmployeeTicketsPage() {
                                             className={`flex ${msg.senderType === 'employee' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div className={`max-w-[70%] px-4 py-3 rounded-2xl ${msg.senderType === 'employee'
-                                                    ? 'bg-purple-500 text-white rounded-tr-none'
-                                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-tl-none'
+                                                ? 'bg-purple-500 text-white rounded-tr-none'
+                                                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-tl-none'
                                                 }`}>
                                                 <p className="whitespace-pre-wrap">{msg.message}</p>
                                                 {msg.fileUrl && (

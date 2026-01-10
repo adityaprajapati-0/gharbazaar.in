@@ -1,68 +1,36 @@
-import { Router } from 'express';
-import { body } from 'express-validator';
-import { AuthController } from '../controllers/auth.controller';
-import { authLimiter } from '../middleware/rateLimiter';
-import { validate } from '../middleware/validator';
+/**
+ * 🛣️ AUTHENTICATION ROUTES
+ * 
+ * Defines all auth-related API endpoints.
+ * 
+ * @author GharBazaar Backend Team
+ */
 
-const router = Router();
-const authController = new AuthController();
+import express from 'express';
+import * as authController from '../controllers/auth.controller';
 
-// Apply rate limiting to all auth routes
-router.use(authLimiter);
+const router = express.Router();
+
+/**
+ * @route   POST /api/v1/auth/login
+ * @desc    Authenticate user & get token
+ * @access  Public
+ */
+router.post('/login', authController.login);
 
 /**
  * @route   POST /api/v1/auth/register
  * @desc    Register a new user
  * @access  Public
  */
-router.post(
-    '/register',
-    [
-        body('email').isEmail().withMessage('Invalid email address'),
-        body('password')
-            .isLength({ min: 6 })
-            .withMessage('Password must be at least 6 characters'),
-        body('displayName')
-            .trim()
-            .notEmpty()
-            .withMessage('Display name is required'),
-        body('role')
-            .optional()
-            .isIn(['buyer', 'seller', 'partner', 'legal_partner', 'ground_partner'])
-            .withMessage('Invalid role'),
-        validate,
-    ],
-    authController.register
-);
-
-/**
- * @route   POST /api/v1/auth/login
- * @desc    Login user
- * @access  Public
- */
-router.post(
-    '/login',
-    [
-        body('email').isEmail().withMessage('Invalid email address'),
-        body('password').notEmpty().withMessage('Password is required'),
-        validate,
-    ],
-    authController.login
-);
+router.post('/register', authController.register);
 
 /**
  * @route   POST /api/v1/auth/verify-token
- * @desc    Verify Firebase ID token
+ * @desc    Verify if JWT is valid
  * @access  Public
  */
 router.post('/verify-token', authController.verifyToken);
-
-/**
- * @route   POST /api/v1/auth/refresh
- * @desc    Refresh access token
- * @access  Public
- */
-router.post('/refresh', authController.refreshToken);
 
 /**
  * @route   POST /api/v1/auth/logout
@@ -73,16 +41,11 @@ router.post('/logout', authController.logout);
 
 /**
  * @route   POST /api/v1/auth/forgot-password
- * @desc    Send password reset email
+ * @desc    Request password reset
  * @access  Public
  */
-router.post(
-    '/forgot-password',
-    [
-        body('email').isEmail().withMessage('Invalid email address'),
-        validate,
-    ],
-    authController.forgotPassword
-);
+router.post('/forgot-password', (req, res) => {
+    res.json({ success: true, message: 'Reset email sent (Mock)' });
+});
 
 export default router;

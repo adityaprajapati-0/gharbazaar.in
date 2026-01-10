@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import Link from 'next/link'
 import {
   Check,
@@ -1101,7 +1101,7 @@ export default function PricingPage() {
                 </thead>
                 <tbody>
                   {comparisonFeatures.map((category, categoryIndex) => (
-                    <>
+                    <Fragment key={category.category}>
                       <tr key={`category-${categoryIndex}`} className="bg-gray-50 dark:bg-gray-700">
                         <td colSpan={4} className="py-4 px-6 font-bold text-gray-900 dark:text-white text-sm uppercase tracking-wide">
                           {category.category}
@@ -1163,7 +1163,7 @@ export default function PricingPage() {
                           </td>
                         </tr>
                       ))}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

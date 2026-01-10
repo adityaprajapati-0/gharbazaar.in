@@ -260,7 +260,7 @@ export default function MyListingsPage() {
       recentInquiries: []
     },
     {
-      id: 5,
+      id: 7,
       title: 'Smart Home Apartment',
       location: 'Koramangala, Bangalore',
       price: '₹2.5 Cr',
@@ -337,8 +337,8 @@ export default function MyListingsPage() {
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
               }`}
           >
             <Building2 size={20} />
@@ -346,8 +346,8 @@ export default function MyListingsPage() {
           <button
             onClick={() => setViewMode('list')}
             className={`p-2 rounded-lg transition-all ${viewMode === 'list'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
               }`}
           >
             <List size={20} />
@@ -504,8 +504,8 @@ export default function MyListingsPage() {
               <div className="absolute top-3 left-3 flex flex-col gap-2">
                 {/* Sale/Rent Badge */}
                 <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1 ${listing.listingType === 'rent'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-blue-500 text-white'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-blue-500 text-white'
                   }`}>
                   <span>{listing.listingType === 'rent' ? 'FOR RENT' : 'FOR SALE'}</span>
                 </div>
